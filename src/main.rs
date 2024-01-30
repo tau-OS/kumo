@@ -7,7 +7,12 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
 
-    tracing_subscriber::fmt::init();
+    // set envar for log to KUMO_LOG inst6ead of RUST_LOG
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            std::env::var("KUMO_LOG").unwrap_or_else(|_| "info".to_string()),
+        ))
+        .init();
 
     let socket = wf_socket::get_wayfire_socket();
     tracing::info!(?socket, "Wayfire Socket");
