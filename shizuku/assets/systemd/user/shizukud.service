@@ -1,0 +1,9 @@
+[Unit]
+Description=Shizuku notification daemon
+Documentation=man:shizukud(1)
+PartOf=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.Notifications
+ExecStart=/usr/bin/shizukud

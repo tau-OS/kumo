@@ -5,6 +5,11 @@ edition = "2021"
 description = "Kiri Notification daemon"
 license = "GPL-3.0"
 
+# set binary name to `shizukud`
+[[bin]]
+path = "src/main.rs"
+name = "shizukud"
+
 # reference code:
 # https://github.com/Toqozz/wired-notify
 # https://crates.io/crates/runst
