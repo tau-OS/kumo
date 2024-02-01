@@ -11,6 +11,7 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::new(
             std::env::var("SHIZUKU_LOG").unwrap_or_else(|_| "info".to_string()),
         ))
+        .pretty()
         .init();
 
     // establish as dbus server
