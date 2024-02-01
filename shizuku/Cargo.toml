@@ -1,0 +1,20 @@
+[package]
+name = "shizuku"
+version = "0.1.0"
+edition = "2021"
+description = "Kiri Notification daemon"
+license = "GPL-3.0"
+
+# reference code:
+# https://github.com/Toqozz/wired-notify
+#
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+libhelium = { version = "0.1.0", features = ["gtk_v4_10", "v1_6"] }
+
+[dependencies.gtk]
+version = "0.7.0"
+package = "gtk4"
+features = ["v4_10"]

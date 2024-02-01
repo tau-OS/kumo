@@ -26,4 +26,4 @@ tracing-subscriber = { version = "0.3", features = [
 
 
 [workspace]
-members = ["wayland-wf-shell"]
+members = [ "shizuku","wayland-wf-shell"]
