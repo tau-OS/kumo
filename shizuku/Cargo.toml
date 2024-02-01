@@ -7,6 +7,8 @@ license = "GPL-3.0"
 
 # reference code:
 # https://github.com/Toqozz/wired-notify
+# https://crates.io/crates/runst
+
 #
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
