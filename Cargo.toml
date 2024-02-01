@@ -23,9 +23,6 @@ tracing-subscriber = { version = "0.3", features = [
     "serde_json",
     "tracing-serde",
 ] }
-wayland-backend = { version = "0.3.3", features = ["client_system", "log"] }
-wayland-client = { version = "0.31.2", features = ["log"] }
-wayland-scanner = "0.31.1"
 
 
 [workspace]
