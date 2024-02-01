@@ -1,5 +1,6 @@
 mod wf_ipc;
 mod wf_socket;
+mod wf_shell_proto;
 use color_eyre::Result;
 use serde_json::json;
 fn main() -> Result<()> {
