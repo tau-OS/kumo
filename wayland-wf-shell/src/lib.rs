@@ -1,4 +1,4 @@
-// todo: move this to a separate crate?
+// todo: use pkg-config to find wayfire instead of hardcoding the path, and copying the file manually
 
 use wayland_client;
 use wayland_client::protocol::*;
