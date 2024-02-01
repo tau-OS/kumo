@@ -10,6 +10,26 @@
 //! section of the zbus documentation.
 //!
 
+pub const DBUS_OBJECT_PATH: &str = "/org/freedesktop/Notifications";
+pub const DBUS_INTERFACE: &str = "org.freedesktop.Notifications";
+
+/// D-Bus server information.
+///
+/// Specifically, the server name, vendor, version, and spec version.
+const SERVER_INFO: [&str; 4] = [
+    env!("CARGO_PKG_NAME"),
+    env!("CARGO_PKG_AUTHORS"),
+    env!("CARGO_PKG_VERSION"),
+    "1.2",
+];
+
+/// D-Bus server capabilities.
+///
+/// - `actions`: The server will provide the specified actions to the user.
+/// - `body`: Supports body text.
+const SERVER_CAPABILITIES: [&str; 2] = ["actions", "body"];
+
+use serde::{Deserialize, Serialize};
 use zbus::dbus_proxy;
 
 #[dbus_proxy(interface = "org.freedesktop.Notifications", assume_defaults = true)]
@@ -43,4 +63,62 @@ trait Notifications {
     /// NotificationClosed signal
     #[dbus_proxy(signal)]
     fn notification_closed(&self, id: u32, reason: u32) -> zbus::Result<()>;
+}
+
+// Let's implement a server interface based on what we have for this client proxy
+
+use zbus::dbus_interface;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NotificationsServer;
+
+#[dbus_interface(name = "org.freedesktop.Notifications")]
+impl NotificationsServer {
+    async fn close_notification(&self, id: u32) -> Result<(), zbus::fdo::Error> {
+        tracing::info!(?id, "CloseNotification");
+        Ok(())
+    }
+
+    async fn get_capabilities(&self) -> Vec<String> {
+        SERVER_CAPABILITIES.into_iter().map(String::from).collect()
+    }
+
+    async fn get_server_information(&self) -> Result<(String, String, String, String), zbus::fdo::Error> {
+        Ok((
+            SERVER_INFO[0].to_string(),
+            SERVER_INFO[1].to_string(),
+            SERVER_INFO[2].to_string(),
+            SERVER_INFO[3].to_string(),
+        ))
+    }
+
+    async fn notify(
+        &self,
+        app_name: &str,
+        replaces_id: u32,
+        app_icon: &str,
+        summary: &str,
+        body: &str,
+        actions: Vec<&str>,
+        hints: std::collections::HashMap<&str, zbus::zvariant::Value<'_>>,
+        expire_timeout: i32,
+    ) -> u32 {
+        tracing::info!(
+            ?app_name,
+            ?replaces_id,
+            ?app_icon,
+            ?summary,
+            ?body,
+            ?actions,
+            ?hints,
+            ?expire_timeout,
+            "Notify"
+        );
+        0
+    }
+
+    // #[dbus_interface(signal)]
+    // async fn action_invoked(&self, id: u32, action_key: &str) {
+    //     tracing::info!(?id, ?action_key, "ActionInvoked");
+    // }
 }
