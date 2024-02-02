@@ -34,7 +34,7 @@ impl NotificationStack {
 
 
         // clamp at 0
-        let count = if count == 0 { 0 } else { count - 1 };
+        let count = if count == 1 { 0 } else { count - 1 };
         // now show with index
         self.notifications
             .last_mut()
