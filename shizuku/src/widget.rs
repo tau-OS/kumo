@@ -1,7 +1,9 @@
 use crate::dbus::Urgency;
-use gtk::prelude::{BoxExt, GtkWindowExt};
+use gtk::prelude::{BoxExt, GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use libhelium::Button;
+
+const WINDOW_HEIGHT: i32 = 100;
 
 pub struct Notification {
     pub title: String,
@@ -37,7 +39,7 @@ impl Notification {
             .margin_start(10)
             .margin_end(10)
             .width_request(400)
-            .height_request(100)
+            .height_request(WINDOW_HEIGHT)
             .build();
 
         // no icon for now
@@ -85,7 +87,10 @@ impl Notification {
             .valign(gtk::Align::Start)
             .build();
 
-        let close_button = gtk::Button::builder().label("Close").build();
+        let close_button = gtk::Button::builder()
+            .icon_name("window-close")
+            .css_classes(vec!["close-button", "rounded"])   
+            .build();
 
         action_box.append(&close_button);
 
@@ -94,13 +99,18 @@ impl Notification {
         box_
     }
 
-    pub fn as_window(&self, app: &libhelium::Application) -> libhelium::Window {
+    pub fn as_window(&self, app: &libhelium::Application, index: usize) -> libhelium::Window {
         let window = libhelium::Window::builder()
             .title(&self.title)
             .application(app)
             .resizable(false)
             .decorated(false)
             .build();
+
+        // top margin would be the default (window size * index)+ margin of 50
+        // if index is 0 then give it 15
+
+        let top_margin = if index == 0 { 15 } else { (index * WINDOW_HEIGHT as usize) + 50 };
 
         window.init_layer_shell();
 
@@ -113,12 +123,24 @@ impl Notification {
         window.set_anchor(Edge::Bottom, false);
         window.set_anchor(Edge::Left, false);
 
-        window.set_margin(Edge::Top, 15);
+        window.set_margin(Edge::Top, top_margin as i32 + 15);
         window.set_margin(Edge::Right, 15);
 
         let box_ = self.as_box();
 
         window.set_child(Some(&box_));
+
+
+        // on activate, show window for 5 seconds and then close it
+
+        window.connect_activate_default(|window| {
+            // wait for 5 seconds and then close the window
+
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            // window.show();
+            println!("Closing window");
+        });
 
         window
     }

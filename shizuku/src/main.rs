@@ -7,8 +7,7 @@ use gtk::prelude::{BoxExt, GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use zbus::Connection;
 // a basic listener for now, prints notifications to stdout using println!
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<gtk::glib::ExitCode> {
     // dotenvy::dotenv()?;
 
     color_eyre::install()?;
@@ -42,7 +41,7 @@ async fn main() -> Result<()> {
     // todo: bind this code to an actual dbus server,
     // also, make them windows stackable so we can have multiple notifications
     application.connect_activate(|app| {
-       let notification = widget::Notification::new(
+        let notification = widget::Notification::new(
             "Hello".to_string(),
             "This is a notification".to_string(),
             None,
@@ -50,14 +49,22 @@ async fn main() -> Result<()> {
             0,
         );
 
-        notification.as_window(app).show()
+        let notif2 = widget::Notification::new(
+            "Hello".to_string(),
+            "This is a notification too".to_string(),
+            None,
+            dbus::Urgency::Low,
+            0,
+        );
+
+        let notifications = vec![notification, notif2];
+
+        for (i, notif) in notifications.iter().enumerate() {
+            notif.as_window(app, i).show();
+        }
     });
 
- 
-    
+    let hold = application.hold();
 
-
-    application.run();
-
-    Ok(())
+    Ok(application.run())
 }
