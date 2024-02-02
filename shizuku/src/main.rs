@@ -37,7 +37,7 @@ impl NotificationStack {
             .last_mut()
             .unwrap()
             .as_window(app, count - 1)
-            .show();
+            .set_visible(true);
     }
 }
 
