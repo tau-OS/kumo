@@ -32,11 +32,14 @@ impl NotificationStack {
         // then get the count of all notifications
         let count = self.notifications.len();
 
+
+        // clamp at 0
+        let count = if count == 0 { 0 } else { count - 1 };
         // now show with index
         self.notifications
             .last_mut()
             .unwrap()
-            .as_window(app, count - 1)
+            .as_window(app, count)
             .set_visible(true);
     }
 }
