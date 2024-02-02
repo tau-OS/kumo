@@ -89,7 +89,7 @@ impl Notification {
 
         let close_button = gtk::Button::builder()
             .icon_name("window-close")
-            .css_classes(vec!["close-button", "rounded"])   
+            .css_classes(vec!["close-button", "rounded"])
             .build();
 
         action_box.append(&close_button);
@@ -99,7 +99,7 @@ impl Notification {
         box_
     }
 
-    pub fn as_window(&self, app: &libhelium::Application, index: usize) -> libhelium::Window {
+    pub fn as_window(&mut self, app: &libhelium::Application, index: usize) -> libhelium::Window {
         let window = libhelium::Window::builder()
             .title(&self.title)
             .application(app)
@@ -110,37 +110,48 @@ impl Notification {
         // top margin would be the default (window size * index)+ margin of 50
         // if index is 0 then give it 15
 
-        let top_margin = if index == 0 { 15 } else { (index * WINDOW_HEIGHT as usize) + 50 };
+        let top_margin = if index == 0 {
+            15
+        } else {
+            (index * WINDOW_HEIGHT as usize) + 50
+        };
 
         window.init_layer_shell();
 
         window.set_layer(Layer::Overlay);
 
-        window.auto_exclusive_zone_enable();
+        window.connect_show(move |window| {
+            window.auto_exclusive_zone_enable();
 
-        window.set_anchor(Edge::Top, true);
-        window.set_anchor(Edge::Right, true);
-        window.set_anchor(Edge::Bottom, false);
-        window.set_anchor(Edge::Left, false);
+            window.set_anchor(Edge::Top, true);
+            window.set_anchor(Edge::Right, true);
+            window.set_anchor(Edge::Bottom, false);
+            window.set_anchor(Edge::Left, false);
 
-        window.set_margin(Edge::Top, top_margin as i32 + 15);
-        window.set_margin(Edge::Right, 15);
+            window.set_margin(Edge::Top, top_margin as i32 + 15);
+            window.set_margin(Edge::Right, 15);
+            window.present();
+        });
 
         let box_ = self.as_box();
 
         window.set_child(Some(&box_));
 
-
         // on activate, show window for 5 seconds and then close it
 
-        window.connect_activate_default(|window| {
+     /*    window.connect_visible_notify(|window| {
+            println!("Window activated");
+            // window.set_visible(true);
+            window.show();
+
             // wait for 5 seconds and then close the window
 
             std::thread::sleep(std::time::Duration::from_secs(5));
 
-            // window.show();
-            println!("Closing window");
-        });
+            window.set_visible(false);
+        }); */
+
+        // self.window = Some(window);
 
         window
     }
