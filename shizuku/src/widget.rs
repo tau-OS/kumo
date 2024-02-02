@@ -1,7 +1,7 @@
-use gtk::prelude::BoxExt;
-use libhelium::Button;
 use crate::dbus::Urgency;
-
+use gtk::prelude::{BoxExt, GtkWindowExt};
+use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use libhelium::Button;
 
 pub struct Notification {
     pub title: String,
@@ -85,15 +85,41 @@ impl Notification {
             .valign(gtk::Align::Start)
             .build();
 
-        let close_button = gtk::Button::builder()
-            .label("Close")
-            .build();
+        let close_button = gtk::Button::builder().label("Close").build();
 
         action_box.append(&close_button);
 
         box_.append(&action_box);
 
-
         box_
+    }
+
+    pub fn as_window(&self, app: &libhelium::Application) -> libhelium::Window {
+        let window = libhelium::Window::builder()
+            .title(&self.title)
+            .application(app)
+            .resizable(false)
+            .decorated(false)
+            .build();
+
+        window.init_layer_shell();
+
+        window.set_layer(Layer::Overlay);
+
+        window.auto_exclusive_zone_enable();
+
+        window.set_anchor(Edge::Top, true);
+        window.set_anchor(Edge::Right, true);
+        window.set_anchor(Edge::Bottom, false);
+        window.set_anchor(Edge::Left, false);
+
+        window.set_margin(Edge::Top, 15);
+        window.set_margin(Edge::Right, 15);
+
+        let box_ = self.as_box();
+
+        window.set_child(Some(&box_));
+
+        window
     }
 }
