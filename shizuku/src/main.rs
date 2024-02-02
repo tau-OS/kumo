@@ -30,5 +30,12 @@ async fn main() -> Result<()> {
         std::future::pending::<()>().await;
     }
 
-    // Ok(())
+fn main() {
+    let application = gtk::Application::new(Some("sh.wmww.gtk-layer-example"), Default::default());
+
+    application.connect_activate(|app| {
+        activate(app);
+    });
+
+    application.run();
 }
