@@ -17,6 +17,10 @@ lazy_static::lazy_static! {
         = std::sync::Arc::new(async_std::channel::unbounded());
 }
 
+thread_local! {
+    pub static NOTIFICATION_STACK: Arc<Mutex<NotificationStack>> = Arc::new(Mutex::new(NotificationStack::new(vec![])));
+}
+
 fn time_now() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -38,6 +42,13 @@ impl NotifSchedTimer {
         }
     }
 
+    pub fn with_duration_secs(duration: usize) -> Self {
+        Self {
+            until: time_now() + (duration * 1000) as u128,
+            duration,
+        }
+    }
+
     pub fn is_over(&self) -> bool {
         time_now() >= self.until
     }
@@ -48,6 +59,9 @@ pub enum NotifStackEvent {
     Closed(usize), // pos of notif in the stack vec
     Added(widget::Notification),
 }
+
+// todo: @madonuko, make this a hashmap of (notif, gtk::Window) so we can access windows directly?
+// helps for remotely and automatically closing notifs
 #[derive(Clone)]
 pub struct NotificationStack(Vec<widget::Notification>);
 
@@ -110,16 +124,23 @@ impl NotificationStack {
         win.set_visible(true);
         win.connect_destroy(Self::on_post_close_notif);
         notif.sched = Some(NotifSchedTimer::new());
-        self.0.push(notif);
+        self.0.push(notif.clone());
+        // Now create a new thread to poll timers and close notifs
+
+        // async_std::task::spawn(clone!(@weak win => async move {
+        //     let mut sched = notif.sched.as_mut().expect("No notif sched");
+        //     while !sched.is_over() {
+        //         async_std::task::sleep(std::time::Duration::from_secs(1)).await;
+        //     }
+        //     // Self::on_post_close_notif(win.as_ref().expect("No window"));
+
+        //     win.close();
+        // }));
     }
 
     // todo: recieve signals from NOTIF_DESTROY_CHANS.1 instead of using this method
     pub fn poll(&mut self) {
         println!("Polling notifs");
-
-        let MSGS = NOTIF_DESTROY_CHANS.clone();
-
-        let (tx, rx) = (MSGS.0.clone(), MSGS.1.clone());
 
         let mut notifs_to_rm = vec![];
         for (i, notif) in self.0.iter().enumerate() {
@@ -259,65 +280,6 @@ fn main() -> Result<gtk::glib::ExitCode> {
     // let application = libhelium::Application::builder()
     // .application_id("com.fyralabs.shizuku")
     // .build();
-
-    // todo: bind this code to an actual dbus server,
-    // also, make them windows stackable so we can have multiple notifications
-    application.app.connect_activate(|app| {
-        let mut stack = NotificationStack::new(vec![]);
-        // stack.add(
-        //     widget::Notification::new(
-        //         "Hello".to_string(),
-        //         "This is a notification".to_string(),
-        //         None,
-        //         dbus::Urgency::Low,
-        //         0,
-        //     ),
-        //     app,
-        // );
-
-        // // std::thread::sleep(std::time::Duration::from_secs(5));
-        // stack.add(
-        //     widget::Notification::new(
-        //         "Hello".to_string(),
-        //         "This is a notification too".to_string(),
-        //         None,
-        //         dbus::Urgency::Low,
-        //         0,
-        //     ),
-        //     app,
-        // );
-
-        // gtk::glib::spawn_future_local(async {
-        //     stack.
-        // });
-
-        //     for (i, notif) in notifications.iter_mut().enumerate() {
-        //         let win = notif.as_window(app, i);
-        //
-        //         // spawn thread
-        //
-        //         gtk::glib::spawn_future_local(async move {
-        //             win.show();
-        //         });
-        //
-        //         // show window for 5 seconds and then close it
-        //
-        //         // win.connect_activate_default(move |window| {
-        //
-        //         //     println!("Window activated");
-        //         //     // wait for 5 seconds and then close the window
-        //
-        //         //     // std::thread::sleep(std::time::Duration::from_secs(5));
-        //
-        //         //     window.set_visible(false);
-        //         //     println!("Closing window");
-        //         // });
-        //
-        //         // win.activate();
-        //
-        //         // println!("Window shown");
-        //     }
-    });
 
     // We hold the application here so that it doesn't exit immediately after the activate signal is emitted
     let _hold = application.app.hold();

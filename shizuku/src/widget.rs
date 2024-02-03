@@ -1,15 +1,39 @@
 use crate::dbus::Urgency;
-use gio::glib::ObjectExt;
 use glib::Cast;
-use gtk::{
-    gdk::ffi::{gdk_display_get_default_seat, GdkDisplay},
-    prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt},
-    Button,
-};
+use gtk::prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use tracing::{debug, warn};
-
 const WINDOW_HEIGHT: i32 = 100;
+
+// thread_local! {
+//     pub static GTK_WINDOWS: std::sync::Arc<std::sync::Mutex<Vec<libhelium::Window>>> = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+// }
+
+// pub fn find_window_by_name(name: &str) -> Option<libhelium::Window> {
+//     let windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
+
+//     windows
+//         .iter()
+//         .find(|window| window.widget_name() == name)
+//         .cloned()
+// }
+
+// pub fn delete_window_by_name(name: &str) {
+//     debug!(?name, "Deleting window by name");
+//     let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
+
+//     let window_idx = windows
+//         .iter()
+//         .position(|window| window.widget_name() == name);
+
+//     if let Some(idx) = window_idx {
+//         let window = windows.get(idx).unwrap();
+
+//         window.close();
+//         windows.remove(idx);
+//     }
+
+// }
 
 #[derive(Default, Clone, Debug)]
 pub struct Notification {
@@ -182,8 +206,29 @@ impl Notification {
 
         window.set_child(Some(&box_));
 
+        // let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
+
+        // windows.push(window.clone());
+
         window
 
         // box_
+    }
+
+    /// Keep polling until the current time is greater than the scheduled time,
+    /// then, destroy the window
+    pub async fn poll(&mut self) -> bool {
+        let sched = self.sched.as_mut();
+
+        if let Some(sched) = sched {
+            if sched.is_over() {
+                debug!("Sched is over");
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
 }

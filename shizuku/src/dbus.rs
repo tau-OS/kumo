@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, sync::RwLock};
+use std::sync::RwLock;
 
 use serde::{Deserialize, Serialize};
 use zbus::{dbus_interface, dbus_proxy, zvariant::Type, SignalContext};
@@ -301,13 +301,21 @@ impl NotificationsServer {
         };
 
         tracing::debug!(?urgency, "urgency");
-        
+
         tracing::debug!(?id, "id");
 
         // turn this arc into tuple
         let (tx, _rx) = (channel.0.clone(), channel.1.clone());
 
-        let sched = NotifSchedTimer::new();
+        // expire_timeout is a hint that can be -1, or a positive integer
+
+        // if expire_timeout is -1, use default timeout
+
+        let expire_timeout = if expire_timeout == -1 {
+            NotifSchedTimer::new()
+        } else {
+            NotifSchedTimer::with_duration_secs(expire_timeout.try_into().unwrap())
+        };
 
         // send the notification to the notification stack
         let notification = crate::widget::Notification {
@@ -316,7 +324,7 @@ impl NotificationsServer {
             icon: Some(app_icon.to_string()),
             urgency: urgency,
             id: id,
-            sched: Some(sched),
+            sched: Some(expire_timeout),
         };
 
         // send the notification to the notification stack
