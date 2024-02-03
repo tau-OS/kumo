@@ -133,7 +133,8 @@ impl Notification {
 
         let close_button = gtk::Button::builder()
             .icon_name("window-close")
-            .css_classes(vec!["close-button", "rounded"])
+            .css_classes(vec!["close-button", "circle-radius"])
+            // .css_name("notif-close-btn")
             .build();
 
         close_button.connect_clicked(move |btn| {
@@ -170,6 +171,8 @@ impl Notification {
             .application(app)
             .resizable(false)
             .decorated(false)
+            .css_classes(vec!["surface-container-lowest-bg-color", "x-large-radius"])
+            .css_name("notif-toast")
             .build();
 
         // top margin would be the default (window size * index)+ margin of 50
