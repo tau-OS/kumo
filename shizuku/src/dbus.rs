@@ -1,7 +1,20 @@
+use std::{borrow::BorrowMut, sync::RwLock};
+
 use serde::{Deserialize, Serialize};
 use zbus::{dbus_interface, dbus_proxy, zvariant::Type, SignalContext};
 
-use crate::{NotifStackEvent, NOTIF_DESTROY_CHANS};
+use crate::{NotifSchedTimer, NotifStackEvent, NOTIF_DESTROY_CHANS};
+
+// An incrementing counter for notification IDs.
+lazy_static::lazy_static! {
+    static ref NOTIFICATION_ID: RwLock<u32> = RwLock::new(0);
+}
+
+fn get_notification_id() -> u32 {
+    let mut id = NOTIFICATION_ID.write().unwrap();
+    *id += 1;
+    *id
+}
 
 pub const DBUS_OBJECT_PATH: &str = "/org/freedesktop/Notifications";
 pub const DBUS_INTERFACE: &str = "org.freedesktop.Notifications";
@@ -41,6 +54,17 @@ pub enum Urgency {
     #[default]
     Normal = 1,
     Critical = 2,
+}
+
+impl From<u8> for Urgency {
+    fn from(urgency: u8) -> Self {
+        match urgency {
+            0 => Urgency::Low,
+            1 => Urgency::Normal,
+            2 => Urgency::Critical,
+            _ => Urgency::Normal,
+        }
+    }
 }
 /// Notification Position
 // Honestly I don't know if we would need this, since it would go against Helium HIG
@@ -257,26 +281,46 @@ impl NotificationsServer {
 
         // let hints: NotificationHints = serde_json::from_str(&hints).unwrap();
 
-
         // serialize hints to a struct
 
         let channel = NOTIF_DESTROY_CHANS.clone();
 
+        // allocate a notification ID
+        let id = get_notification_id();
+
+        let urgency_int = hints.get("urgency");
+
+        tracing::debug!(?urgency_int, "urgency_int");
+
+        let urgency = match urgency_int {
+            Some(urgency) => {
+                let urgency = urgency.downcast_ref::<u8>().unwrap();
+                urgency.clone().into()
+            }
+            None => Urgency::default(),
+        };
+
+        tracing::debug!(?urgency, "urgency");
+        
+        tracing::debug!(?id, "id");
+
         // turn this arc into tuple
-        let (tx, rx) = (channel.0.clone(), channel.1.clone());
+        let (tx, _rx) = (channel.0.clone(), channel.1.clone());
+
+        let sched = NotifSchedTimer::new();
 
         // send the notification to the notification stack
         let notification = crate::widget::Notification {
             title: summary.to_string(),
             body: body.to_string(),
             icon: Some(app_icon.to_string()),
-            urgency: Urgency::Normal,
-            id: 0, // hints.sender_pid as u32,
-            sched: None,
+            urgency: urgency,
+            id: id,
+            sched: Some(sched),
         };
 
         // send the notification to the notification stack
-        tx.send(NotifStackEvent::Added(notification)).await;
+        let _ = tx.send(NotifStackEvent::Added(notification)).await;
 
         Ok(0)
     }

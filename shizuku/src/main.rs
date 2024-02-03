@@ -80,7 +80,21 @@ impl NotificationStack {
         let window_name = win.widget_name();
         debug!(?window_name, "Notif window closed");
 
+        // get window id by removing the "notif-" prefix
+
+        let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
+
+        let tx = NOTIF_DESTROY_CHANS.0.clone();
+
+        // tx.send(NotifStackEvent::Closed(window_id as usize)).await.unwrap();
+
         win.close();
+
+        async_std::task::spawn(async move {
+            tx.send(NotifStackEvent::Closed(window_id as usize))
+                .await
+                .unwrap();
+        });
 
         // emit signal to close the notif
         // todo!()
@@ -173,28 +187,6 @@ impl Application {
     }
 
     pub fn run(&mut self) -> gtk::glib::ExitCode {
-        // self.app.connect_activate(move |app| {
-        //     let msgs = NOTIF_DESTROY_CHANS.clone();
-
-        //     let (tx, rx) = (msgs.0.clone(), msgs.1.clone());
-
-        //     gtk::glib::MainContext::default().spawn_local(clone!(@strong app => async move {
-        //         loop {
-        //             let event = rx.recv().await.unwrap();
-
-        //             match event {
-        //                 NotifStackEvent::Closed(index) => {
-        //                     self.stack.lock().unwrap().remove(index);
-        //                 },
-        //                 NotifStackEvent::Added(notif) => {
-        //                     self.add(notif);
-        //                 }
-        //             }
-
-        //         }
-        //     }));
-        // });
-
         let mut self_clone = self.clone();
         gtk::glib::MainContext::default().spawn_local(async move {
             self_clone.poll_msg_queue().await;
@@ -211,6 +203,10 @@ impl Application {
 
         loop {
             let event = rx.recv().await.unwrap();
+
+            // self.stack.poll();
+
+            tracing::debug!(?event, "Processing event");
 
             match event {
                 NotifStackEvent::Closed(index) => {

@@ -1,8 +1,9 @@
 use crate::dbus::Urgency;
 use gio::glib::ObjectExt;
+use glib::Cast;
 use gtk::{
     gdk::ffi::{gdk_display_get_default_seat, GdkDisplay},
-    prelude::*,
+    prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt},
     Button,
 };
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
@@ -120,7 +121,19 @@ impl Notification {
                 warn!("Can't get parent in connect clicked");
                 return;
             };
-            window.set_visible(false);
+
+            // downcast to libhelium::Window
+            let window = window
+                .downcast::<libhelium::Window>()
+                .expect("fail to downcast");
+
+            let window_name = window.widget_name();
+            // parse window id by removing the "notif-" prefix
+            let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
+
+            debug!(?window_name, ?window_id, "Notif window closed");
+
+            window.close();
         });
 
         action_box.append(&close_button);
