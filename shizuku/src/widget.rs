@@ -138,10 +138,12 @@ impl Notification {
         // top margin would be the default (window size * index)+ margin of 50
         // if index is 0 then give it 15
 
+        let top_offset = 15;
+
         let top_margin = if index == 0 {
-            0
+            0 + top_offset
         } else {
-            (index * WINDOW_HEIGHT as usize) + 50 * index
+            ((index * WINDOW_HEIGHT as usize) + 50 * index) + top_offset
         };
 
         window.init_layer_shell();
