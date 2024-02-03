@@ -139,7 +139,7 @@ impl Notification {
         // if index is 0 then give it 15
 
         let top_margin = if index == 0 {
-            15
+            0
         } else {
             (index * WINDOW_HEIGHT as usize) + 50 * index
         };
