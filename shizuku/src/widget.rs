@@ -1,16 +1,25 @@
 use crate::dbus::Urgency;
-use gtk::prelude::{BoxExt, GtkWindowExt, WidgetExt};
+use gio::glib::ObjectExt;
+use gtk::{
+    gdk::ffi::{gdk_display_get_default_seat, GdkDisplay},
+    prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt},
+    Button,
+};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
-use libhelium::Button;
+use tracing::{debug, warn};
 
 const WINDOW_HEIGHT: i32 = 100;
 
+#[derive(Default, Clone)]
 pub struct Notification {
     pub title: String,
     pub body: String,
     pub icon: Option<String>,
     pub urgency: Urgency,
     pub id: u32,
+    // we need this to set the connect() stuff in the NotificationStack
+    pub close_btn: Option<Button>,
+    pub sched: Option<crate::NotifSchedTimer>,
 }
 
 impl Notification {
@@ -27,10 +36,12 @@ impl Notification {
             icon,
             urgency,
             id,
+            close_btn: None,
+            sched: None,
         }
     }
 
-    pub fn as_box(&self) -> gtk::Box {
+    pub fn as_box(&mut self) -> gtk::Box {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(10)
@@ -44,14 +55,14 @@ impl Notification {
 
         // no icon for now
 
-        if let Some(icon) = &self.icon {
-            let image = gtk::Image::builder()
-                .icon_name(icon)
-                .icon_size(gtk::IconSize::Large)
-                .build();
-
-            box_.append(&image);
-        }
+        self.icon.as_ref().map(|icon| {
+            box_.append(
+                &gtk::Image::builder()
+                    .icon_name(icon)
+                    .icon_size(gtk::IconSize::Large)
+                    .build(),
+            )
+        });
 
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -92,7 +103,20 @@ impl Notification {
             .css_classes(vec!["close-button", "rounded"])
             .build();
 
+        close_button.connect_clicked(move |btn| {
+            let Some(window) = btn
+                .parent()
+                .and_then(|action| action.parent())
+                .and_then(|box_| box_.parent())
+            else {
+                warn!("Can't get parent in connect clicked");
+                return;
+            };
+            window.set_visible(false);
+        });
+
         action_box.append(&close_button);
+        self.close_btn = Some(close_button);
 
         box_.append(&action_box);
 
@@ -137,9 +161,14 @@ impl Notification {
 
         window.set_child(Some(&box_));
 
+        // box_.connect("motion-notify-event", false, |_| {
+        //     debug!("motion notify!");
+        //     None
+        // });
+
         // on activate, show window for 5 seconds and then close it
 
-     /*    window.connect_visible_notify(|window| {
+        /*    window.connect_visible_notify(|window| {
             println!("Window activated");
             // window.set_visible(true);
             window.show();

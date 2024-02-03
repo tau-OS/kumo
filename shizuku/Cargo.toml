@@ -19,7 +19,9 @@ name = "shizukud"
 
 
 [dependencies]
+async-std = "1.12.0"
 bitflags = "2.4.2"
+chrono = "0.4.33"
 color-eyre = "0.6.2"
 gio = "0.18.4"
 gtk4-layer-shell = "0.2.0"

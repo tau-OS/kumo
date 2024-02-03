@@ -1,46 +1,103 @@
 mod dbus;
 mod widget;
-use std::sync::Mutex;
-
 use color_eyre::Result;
-use gio::prelude::{ApplicationExt, ApplicationExtManual};
-use gtk::prelude::{BoxExt, GtkWindowExt, WidgetExt};
-// use gtk4_layer_shell::LayerShell;
-use gtk4_layer_shell::{Edge, Layer, LayerShell};
-use zbus::Connection;
+use gio::{
+    glib::Cast,
+    prelude::{ApplicationExt, ApplicationExtManual},
+};
+use gtk::prelude::{ButtonExt, GtkWindowExt, WidgetExt};
+use std::{
+    sync::mpsc,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tracing::warn;
 
 lazy_static::lazy_static! {
-    static ref NOTIF_STACK: Mutex<NotificationStack> = Mutex::new(NotificationStack::new(vec![]));
+    static ref NOTIF_DESTROY_CHANS: std::sync::Arc<(async_std::channel::Sender<NotifStackEvent>, async_std::channel::Receiver<NotifStackEvent>)> = std::sync::Arc::new(async_std::channel::unbounded());
 }
 
-pub struct NotificationStack {
-    pub notifications: Vec<widget::Notification>,
+fn time_now() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards nya??")
+        .as_millis()
 }
+
+#[derive(Default, Clone)]
+pub struct NotifSchedTimer {
+    pub until: u128,     // scheduled unix time in ms to hide the notif
+    pub duration: usize, // duration of notif on screen in secs
+}
+
+impl NotifSchedTimer {
+    pub fn new() -> Self {
+        Self {
+            until: time_now() + 10 * 1000,
+            duration: 10,
+        }
+    }
+
+    pub fn is_over(&self) -> bool {
+        time_now() >= self.until
+    }
+}
+
+pub enum NotifStackEvent {
+    Closed(usize), // pos of notif in the stack vec
+}
+
+pub struct NotificationStack(Vec<widget::Notification>);
 
 impl NotificationStack {
     pub fn new(notifications: Vec<widget::Notification>) -> Self {
-        Self { notifications }
+        Self { 0: notifications }
     }
 
     pub fn clear(&mut self) {
-        self.notifications.clear();
+        self.0.clear();
     }
 
-    pub fn add(&mut self, notif: widget::Notification, app: &libhelium::Application) {
-        self.notifications.push(notif);
+    fn post_close_notif(&mut self, index: usize) {
+        self.0.remove(index);
+    }
 
-        // then get the count of all notifications
-        let count = self.notifications.len();
+    fn on_notif_close_btn_clicked(btn: &gtk::Button) {
+        btn.parent()
+            .and_then(|action| action.parent())
+            .and_then(|box_| box_.parent())
+            .map(|widget| widget.downcast::<libhelium::Window>())
+            .map_or_else(
+                || warn!("Can't get parent in on_close_btn_clicked()"),
+                |window| window.expect("fail to downcast").close(),
+            );
+    }
 
+    fn on_post_close_notif(win: &libhelium::Window) {
+        todo!()
+    }
 
-        // clamp at 0
-        let count = if count == 1 { 0 } else { count - 1 };
-        // now show with index
-        self.notifications
-            .last_mut()
-            .unwrap()
-            .as_window(app, count)
-            .set_visible(true);
+    pub fn add(&mut self, mut notif: widget::Notification, app: &libhelium::Application) {
+        let win = notif.as_window(app, self.0.len());
+        (notif.close_btn.as_ref())
+            .expect("No close button registered on notif")
+            .connect_clicked(Self::on_notif_close_btn_clicked);
+
+        win.set_visible(true);
+        win.connect_destroy(Self::on_post_close_notif);
+        notif.sched = Some(NotifSchedTimer::new());
+        self.0.push(notif);
+    }
+
+    pub fn poll(&mut self) {
+        let mut notifs_to_rm = vec![];
+        for (i, notif) in self.0.iter().enumerate() {
+            if notif.sched.as_ref().expect("No notif sched").is_over() {
+                // pretend we're closing it
+                Self::on_notif_close_btn_clicked(&notif.close_btn.as_ref().expect("No close btn"));
+                notifs_to_rm.push(i);
+            }
+        }
+        (notifs_to_rm.into_iter().enumerate()).for_each(|(n, i)| self.post_close_notif(i - n));
     }
 }
 
@@ -79,50 +136,54 @@ fn main() -> Result<gtk::glib::ExitCode> {
     // todo: bind this code to an actual dbus server,
     // also, make them windows stackable so we can have multiple notifications
     application.connect_activate(|app| {
-        let notification = widget::Notification::new(
-            "Hello".to_string(),
-            "This is a notification".to_string(),
-            None,
-            dbus::Urgency::Low,
-            0,
+        let mut stack = NotificationStack::new(vec![]);
+        stack.add(
+            widget::Notification::new(
+                "Hello".to_string(),
+                "This is a notification".to_string(),
+                None,
+                dbus::Urgency::Low,
+                0,
+            ),
+            app,
+        );
+        stack.add(
+            widget::Notification::new(
+                "Hello".to_string(),
+                "This is a notification too".to_string(),
+                None,
+                dbus::Urgency::Low,
+                0,
+            ),
+            app,
         );
 
-        let notif2 = widget::Notification::new(
-            "Hello".to_string(),
-            "This is a notification too".to_string(),
-            None,
-            dbus::Urgency::Low,
-            0,
-        );
-
-        let mut notifications = vec![notification, notif2];
-
-        for (i, notif) in notifications.iter_mut().enumerate() {
-            let win = notif.as_window(app, i);
-
-            // spawn thread
-
-            gtk::glib::spawn_future_local(async move {
-                win.show();
-            });
-
-            // show window for 5 seconds and then close it
-
-            // win.connect_activate_default(move |window| {
-
-            //     println!("Window activated");
-            //     // wait for 5 seconds and then close the window
-
-            //     // std::thread::sleep(std::time::Duration::from_secs(5));
-
-            //     window.set_visible(false);
-            //     println!("Closing window");
-            // });
-
-            // win.activate();
-
-            // println!("Window shown");
-        }
+        //     for (i, notif) in notifications.iter_mut().enumerate() {
+        //         let win = notif.as_window(app, i);
+        //
+        //         // spawn thread
+        //
+        //         gtk::glib::spawn_future_local(async move {
+        //             win.show();
+        //         });
+        //
+        //         // show window for 5 seconds and then close it
+        //
+        //         // win.connect_activate_default(move |window| {
+        //
+        //         //     println!("Window activated");
+        //         //     // wait for 5 seconds and then close the window
+        //
+        //         //     // std::thread::sleep(std::time::Duration::from_secs(5));
+        //
+        //         //     window.set_visible(false);
+        //         //     println!("Closing window");
+        //         // });
+        //
+        //         // win.activate();
+        //
+        //         // println!("Window shown");
+        //     }
     });
 
     let hold = application.hold();
