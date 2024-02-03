@@ -4,48 +4,18 @@ use std::sync::Mutex;
 
 use color_eyre::Result;
 use gio::prelude::{ApplicationExt, ApplicationExtManual};
-use gtk::prelude::{BoxExt, GtkWindowExt, WidgetExt};
+use gtk::prelude::{BoxExt, GtkApplicationExt, GtkWindowExt, WidgetExt};
 // use gtk4_layer_shell::LayerShell;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use zbus::Connection;
 
-lazy_static::lazy_static! {
-    static ref NOTIF_STACK: Mutex<NotificationStack> = Mutex::new(NotificationStack::new(vec![]));
-}
-
-pub struct NotificationStack {
-    pub notifications: Vec<widget::Notification>,
-}
-
-impl NotificationStack {
-    pub fn new(notifications: Vec<widget::Notification>) -> Self {
-        Self { notifications }
-    }
-
-    pub fn clear(&mut self) {
-        self.notifications.clear();
-    }
-
-    pub fn add(&mut self, notif: widget::Notification, app: &libhelium::Application) {
-        self.notifications.push(notif);
-
-        // then get the count of all notifications
-        let count = self.notifications.len();
-
-
-        // clamp at 0
-        let count = if count == 1 { 0 } else { count - 1 };
-        // now show with index
-        self.notifications
-            .last_mut()
-            .unwrap()
-            .as_window(app, count)
-            .set_visible(true);
-    }
-}
+// lazy_static::lazy_static! {
+//     static ref NOTIF_STACK: Mutex<NotificationStack> = Mutex::new(NotificationStack::new(vec![]));
+// }
 
 // a basic listener for now, prints notifications to stdout using println!
-fn main() -> Result<gtk::glib::ExitCode> {
+#[tokio::main]
+async fn main() -> Result<gtk::glib::ExitCode> {
     // dotenvy::dotenv()?;
 
     color_eyre::install()?;
@@ -72,9 +42,33 @@ fn main() -> Result<gtk::glib::ExitCode> {
         std::future::pending::<()>().await;
     } */
 
+
+    // spawn a thread to listen for notifications
+
+    tokio::spawn(async {
+        let connection = Connection::session().await.unwrap();
+        connection
+            .object_server()
+            .at(dbus::DBUS_OBJECT_PATH, dbus::NotificationsServer)
+            .await
+            .unwrap();
+
+        connection
+            .request_name(dbus::DBUS_INTERFACE)
+            .await
+            .unwrap();
+
+        loop {
+            std::future::pending::<()>().await;
+        }
+    });
+
+
     let application = libhelium::Application::builder()
         .application_id("com.fyralabs.shizuku")
         .build();
+
+
 
     // todo: bind this code to an actual dbus server,
     // also, make them windows stackable so we can have multiple notifications
@@ -86,7 +80,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
             dbus::Urgency::Low,
             0,
         );
-
+    
         let notif2 = widget::Notification::new(
             "Hello".to_string(),
             "This is a notification too".to_string(),
@@ -94,7 +88,6 @@ fn main() -> Result<gtk::glib::ExitCode> {
             dbus::Urgency::Low,
             0,
         );
-
         let mut notifications = vec![notification, notif2];
 
         for (i, notif) in notifications.iter_mut().enumerate() {
@@ -103,6 +96,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
             // spawn thread
 
             gtk::glib::spawn_future_local(async move {
+                // app.add_window(&win);
                 win.show();
             });
 
