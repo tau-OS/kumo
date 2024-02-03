@@ -2,7 +2,7 @@ use crate::dbus::Urgency;
 use gio::glib::ObjectExt;
 use gtk::{
     gdk::ffi::{gdk_display_get_default_seat, GdkDisplay},
-    prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt},
+    prelude::*,
     Button,
 };
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
@@ -55,27 +55,35 @@ impl Notification {
 
         // no icon for now
 
+        let image = &gtk::Image::builder()
+            .icon_size(gtk::IconSize::Large)
+            // .size_request(50, 50)
+            .build();
         self.icon.as_ref().map(|icon| {
-            box_.append(
-                &gtk::Image::builder()
-                    .icon_name(icon)
-                    .icon_size(gtk::IconSize::Large)
-                    .build(),
-            )
+            image.set_from_icon_name(Some(icon));
+            image.set_size_request(60, 50);
+            box_.append(image);
         });
 
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
+            .margin_top(5)
             .spacing(10)
             .hexpand(true)
             .build();
 
         let title = gtk::Label::builder()
             .label(&self.title)
+            .use_markup(true)
+            .name("title")
+            // .set_markup(&format!("<b>{}</b>", &self.title))
             .halign(gtk::Align::Start)
             .lines(1)
             .ellipsize(gtk::pango::EllipsizeMode::End)
+            .css_classes(vec!["bold"])
             .build();
+
+        title.set_markup(&format!("<b>{}</b>", &self.title));
 
         let body = gtk::Label::builder()
             .label(&self.body)
