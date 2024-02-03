@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use zbus::{dbus_interface, dbus_proxy, zvariant::Type, SignalContext};
 
+use crate::{NotifStackEvent, NOTIF_DESTROY_CHANS};
+
 pub const DBUS_OBJECT_PATH: &str = "/org/freedesktop/Notifications";
 pub const DBUS_INTERFACE: &str = "org.freedesktop.Notifications";
 pub type NotificationHintsMap<'a> = std::collections::HashMap<&'a str, zbus::zvariant::Value<'a>>;
@@ -244,15 +246,39 @@ impl NotificationsServer {
         // ! GDBus.Error:org.freedesktop.zbus.Error: D-Bus format does not support optional values
         // need a better way to serialize a{sv} to our struct with optional values?
         expire_timeout: i32,
-    ) -> u32 {
+    ) -> Result<u32, zbus::fdo::Error> {
         // let hints: NotificationHints =
         // serde_json::from_value(serde_json::to_value(hints).unwrap()).unwrap();
         tracing::info!("Notify");
-        let hints = serde_json::to_string(&hints).unwrap();
+        // let hints = serde_json::to_string(&hints).unwrap();
         tracing::debug!(?hints, "hints");
+
+        // let hints = serde_json::to_string(&hints).unwrap();
+
+        // let hints: NotificationHints = serde_json::from_str(&hints).unwrap();
+
+
         // serialize hints to a struct
 
-        0
+        let channel = NOTIF_DESTROY_CHANS.clone();
+
+        // turn this arc into tuple
+        let (tx, rx) = (channel.0.clone(), channel.1.clone());
+
+        // send the notification to the notification stack
+        let notification = crate::widget::Notification {
+            title: summary.to_string(),
+            body: body.to_string(),
+            icon: Some(app_icon.to_string()),
+            urgency: Urgency::Normal,
+            id: 0, // hints.sender_pid as u32,
+            sched: None,
+        };
+
+        // send the notification to the notification stack
+        tx.send(NotifStackEvent::Added(notification)).await;
+
+        Ok(0)
     }
 
     // Signals

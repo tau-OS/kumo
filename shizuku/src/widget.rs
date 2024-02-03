@@ -10,7 +10,7 @@ use tracing::{debug, warn};
 
 const WINDOW_HEIGHT: i32 = 100;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Notification {
     pub title: String,
     pub body: String,
@@ -18,7 +18,7 @@ pub struct Notification {
     pub urgency: Urgency,
     pub id: u32,
     // we need this to set the connect() stuff in the NotificationStack
-    pub close_btn: Option<Button>,
+    // pub close_btn: Option<Button>,
     pub sched: Option<crate::NotifSchedTimer>,
 }
 
@@ -36,12 +36,12 @@ impl Notification {
             icon,
             urgency,
             id,
-            close_btn: None,
+            // close_btn: None,
             sched: None,
         }
     }
 
-    pub fn as_box(&mut self) -> gtk::Box {
+    pub fn as_window(&mut self, app: &libhelium::Application, index: usize) -> libhelium::Window {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(10)
@@ -116,14 +116,10 @@ impl Notification {
         });
 
         action_box.append(&close_button);
-        self.close_btn = Some(close_button);
+        // self.close_btn = Some(close_button);
 
         box_.append(&action_box);
 
-        box_
-    }
-
-    pub fn as_window(&mut self, app: &libhelium::Application, index: usize) -> libhelium::Window {
         let window = libhelium::Window::builder()
             .title(&self.title)
             .application(app)
@@ -137,7 +133,7 @@ impl Notification {
         let top_margin = if index == 0 {
             15
         } else {
-            (index * WINDOW_HEIGHT as usize) + 50
+            (index * WINDOW_HEIGHT as usize) + 50 * index
         };
 
         window.init_layer_shell();
@@ -157,31 +153,12 @@ impl Notification {
             window.present();
         });
 
-        let box_ = self.as_box();
+        // let box_ = self.as_box();
 
         window.set_child(Some(&box_));
 
-        // box_.connect("motion-notify-event", false, |_| {
-        //     debug!("motion notify!");
-        //     None
-        // });
-
-        // on activate, show window for 5 seconds and then close it
-
-        /*    window.connect_visible_notify(|window| {
-            println!("Window activated");
-            // window.set_visible(true);
-            window.show();
-
-            // wait for 5 seconds and then close the window
-
-            std::thread::sleep(std::time::Duration::from_secs(5));
-
-            window.set_visible(false);
-        }); */
-
-        // self.window = Some(window);
-
         window
+
+        // box_
     }
 }
