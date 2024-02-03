@@ -146,6 +146,8 @@ impl Notification {
             ((index * WINDOW_HEIGHT as usize) + 50 * index) + top_offset
         };
 
+        debug!(?top_margin);
+
         window.init_layer_shell();
 
         window.set_layer(Layer::Overlay);
