@@ -1,12 +1,10 @@
 mod dbus;
 mod widget;
+use std::collections::HashMap;
+
 use color_eyre::Result;
 use gio::prelude::ApplicationExtManual;
 use gtk::prelude::{GtkWindowExt, WidgetExt};
-use std::{
-    sync::{Arc, Mutex},
-    time::{SystemTime, UNIX_EPOCH},
-};
 use tracing::{debug, trace, warn};
 
 lazy_static::lazy_static! {
@@ -14,13 +12,9 @@ lazy_static::lazy_static! {
         = std::sync::Arc::new(async_std::channel::unbounded());
 }
 
-thread_local! {
-    pub static NOTIFICATION_STACK: Arc<Mutex<NotificationStack>> = Arc::new(Mutex::new(NotificationStack::new(vec![])));
-}
-
 fn time_now() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
         .expect("Time went backwards nya??")
         .as_millis()
 }
@@ -57,16 +51,10 @@ pub enum NotifStackEvent {
     Added(widget::Notification),
 }
 
-// todo: @madonuko, make this a hashmap of (notif, gtk::Window) so we can access windows directly?
-// helps for remotely and automatically closing notifs
-#[derive(Clone)]
-pub struct NotificationStack(Vec<widget::Notification>);
+#[derive(Clone, Default)]
+pub struct NotificationStack(HashMap<u32, (widget::Notification, libhelium::Window)>);
 
 impl NotificationStack {
-    pub fn new(notifications: Vec<widget::Notification>) -> Self {
-        Self { 0: notifications }
-    }
-
     pub fn clear(&mut self) {
         self.0.clear();
     }
@@ -77,7 +65,6 @@ impl NotificationStack {
         debug!(?window_name, "Notif window closed");
 
         // get window id by removing the "notif-" prefix
-
         let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
 
         let tx = NOTIF_DESTROY_CHANS.0.clone();
@@ -87,9 +74,6 @@ impl NotificationStack {
         async_std::task::spawn(async move {
             tx.send(NotifStackEvent::Closed(window_id)).await.unwrap();
         });
-
-        // emit signal to close the notif
-        // todo!()
     }
 
     pub fn add(&mut self, mut notif: widget::Notification, app: &libhelium::Application) {
@@ -108,42 +92,32 @@ impl NotificationStack {
         win.connect_destroy(Self::on_post_close_notif);
         notif.sched = Some(NotifSchedTimer::new());
         trace!("Connected NotifSchedTimer");
-        self.0.push(notif);
-        // Now create a new thread to poll timers and close notifs
-
-        // async_std::task::spawn(clone!(@weak win => async move {
-        //     let mut sched = notif.sched.as_mut().expect("No notif sched");
-        //     while !sched.is_over() {
-        //         async_std::task::sleep(std::time::Duration::from_secs(1)).await;
-        //     }
-        //     // Self::on_post_close_notif(win.as_ref().expect("No window"));
-
-        //     win.close();
-        // }));
+        self.0.insert(notif.id, (notif, win));
     }
 
     #[tracing::instrument(skip(self))]
     pub fn poll(&mut self) -> Option<NotifStackEvent> {
         self.0
             .iter()
-            .find(|notif| notif.sched.as_ref().expect("No notif sched").is_over())
-            .map(|notif| {
-                debug!(id = notif.id, "Found notif that should be closed!");
+            .find(|(_, (notif, _))| notif.sched.as_ref().expect("No notif sched").is_over())
+            .map(|(id, (notif, win))| {
+                debug!(id, "Found notif that should be closed due to timeout!");
+                win.close();
                 NotifStackEvent::Closed(notif.id)
             })
     }
 
     #[tracing::instrument(skip(self))]
     pub fn remove(&mut self, index: u32) {
-        // find notification with ID == index and remove it
-        if let Some(pos) = self.0.iter().position(|notif| notif.id == index) {
-            debug!(pos, "Removing notif");
-            self.0.remove(pos);
-        }
+        debug!("Removing notif");
+        self.0.remove(&index).map_or_else(
+            || debug!("notif not found"),
+            |(notif, win)| trace!(?notif, ?win, "notif removed"),
+        );
     }
 
-    pub fn get(&self, index: usize) -> Option<&widget::Notification> {
-        self.0.get(index)
+    pub fn get(&self, index: u32) -> Option<&widget::Notification> {
+        self.0.get(&index).map(|obj| &obj.0)
     }
 }
 
@@ -162,7 +136,7 @@ impl Application {
             .flags(gio::ApplicationFlags::NON_UNIQUE)
             .build();
 
-        let stack = NotificationStack::new(vec![]);
+        let stack = NotificationStack::default();
 
         Self { app, stack }
     }
@@ -179,9 +153,7 @@ impl Application {
     #[tracing::instrument(skip(self))]
     pub async fn poll_msg_queue(&mut self) {
         debug!("Polling for notif events");
-        let msgs = NOTIF_DESTROY_CHANS.clone();
-
-        let rx = msgs.1.clone();
+        let rx = NOTIF_DESTROY_CHANS.1.clone();
 
         loop {
             if let Some(event) = self.stack.poll().or_else(|| rx.try_recv().ok()) {
@@ -196,14 +168,14 @@ impl Application {
                     }
                 }
             }
+            // we don't want CPU 100% usage
+            async_std::task::sleep(std::time::Duration::from_millis(50)).await;
         }
     }
 }
 
-// a basic listener for now, prints notifications to stdout using println!
 fn main() -> Result<gtk::glib::ExitCode> {
     // dotenvy::dotenv()?;
-
     color_eyre::install()?;
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::new(
@@ -212,13 +184,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
         .pretty()
         .init();
 
-    // establish as dbus server
-
     let mut application = Application::new();
-
-    // async_std::task::spawn(clone!(@strong application => async move {
-    // application.poll_msg_queue().await;
-    // }));
 
     async_std::task::spawn(async {
         tracing::info!("Starting dbus server");
@@ -241,6 +207,5 @@ fn main() -> Result<gtk::glib::ExitCode> {
     // We hold the application here so that it doesn't exit immediately after the activate signal is emitted
     let _hold = application.app.hold();
 
-    // Ok(application.app.run())
     Ok(application.run())
 }
