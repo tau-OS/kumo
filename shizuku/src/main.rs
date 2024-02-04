@@ -129,6 +129,12 @@ pub struct Application {
     pub stack: NotificationStack,
 }
 
+impl Default for Application {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Application {
     pub fn new() -> Self {
         let app = libhelium::Application::builder()

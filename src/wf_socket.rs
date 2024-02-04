@@ -15,7 +15,7 @@ use std::{
 const WAYFIRE_SOCKET_ENV: &str = "WAYFIRE_SOCKET";
 use color_eyre::Result;
 
-use crate::wf_ipc;
+
 use std::convert::TryInto;
 
 pub fn get_wayfire_socket() -> Option<String> {

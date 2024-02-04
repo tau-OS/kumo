@@ -84,11 +84,11 @@ impl Notification {
             .icon_size(gtk::IconSize::Large)
             // .size_request(50, 50)
             .build();
-        self.icon.as_ref().map(|icon| {
+        if let Some(icon) = &self.icon {
             image.set_from_icon_name(Some(icon));
             image.set_size_request(60, 50);
             box_.append(image);
-        });
+        }
 
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -181,7 +181,7 @@ impl Notification {
         let top_offset = 15;
 
         let top_margin = if index == 0 {
-            0 + top_offset
+            top_offset
         } else {
             ((index * WINDOW_HEIGHT as usize) + 50 * index) + top_offset
         };

@@ -295,7 +295,7 @@ impl NotificationsServer {
         let urgency = match urgency_int {
             Some(urgency) => {
                 let urgency = urgency.downcast_ref::<u8>().unwrap();
-                urgency.clone().into()
+                (*urgency).into()
             }
             None => Urgency::default(),
         };
@@ -322,8 +322,8 @@ impl NotificationsServer {
             title: summary.to_string(),
             body: body.to_string(),
             icon: Some(app_icon.to_string()),
-            urgency: urgency,
-            id: id,
+            urgency,
+            id,
             sched: Some(expire_timeout),
         };
 
