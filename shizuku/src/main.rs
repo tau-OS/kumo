@@ -21,8 +21,8 @@ fn time_now() -> u128 {
 
 #[derive(Default, Clone, Debug)]
 pub struct NotifSchedTimer {
-    pub until: u128,     // scheduled unix time in ms to hide the notif
-    pub duration: usize, // duration of notif on screen in secs
+    pub until: u128,    // scheduled unix time in ms to hide the notif
+    pub duration: u128, // duration of notif on screen in secs
 }
 
 impl NotifSchedTimer {
@@ -33,9 +33,10 @@ impl NotifSchedTimer {
         }
     }
 
-    pub fn with_duration_secs(duration: usize) -> Self {
+    pub fn with_duration_secs(duration: u128) -> Self {
+        let duration = duration.min(10);
         Self {
-            until: time_now() + (duration * 1000) as u128,
+            until: time_now() + duration * 1000,
             duration,
         }
     }
