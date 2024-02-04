@@ -1,16 +1,13 @@
 mod dbus;
 mod widget;
 use color_eyre::Result;
-use gio::{
-    glib::{clone, Cast},
-    prelude::{ApplicationExt, ApplicationExtManual},
-};
-use gtk::prelude::{ButtonExt, GtkWindowExt, WidgetExt};
+use gio::prelude::ApplicationExtManual;
+use gtk::prelude::{GtkWindowExt, WidgetExt};
 use std::{
-    sync::{mpsc, Arc, Mutex},
+    sync::{Arc, Mutex},
     time::{SystemTime, UNIX_EPOCH},
 };
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 lazy_static::lazy_static! {
     static ref NOTIF_DESTROY_CHANS: std::sync::Arc<(async_std::channel::Sender<NotifStackEvent>, async_std::channel::Receiver<NotifStackEvent>)>
@@ -56,7 +53,7 @@ impl NotifSchedTimer {
 
 #[derive(Debug, Clone)]
 pub enum NotifStackEvent {
-    Closed(usize), // pos of notif in the stack vec
+    Closed(u32), // notif id
     Added(widget::Notification),
 }
 
@@ -74,21 +71,6 @@ impl NotificationStack {
         self.0.clear();
     }
 
-    fn post_close_notif(&mut self, index: usize) {
-        self.0.remove(index);
-    }
-
-    fn on_notif_close_btn_clicked(btn: &gtk::Button) {
-        btn.parent()
-            .and_then(|action| action.parent())
-            .and_then(|box_| box_.parent())
-            .map(|widget| widget.downcast::<libhelium::Window>())
-            .map_or_else(
-                || warn!("Can't get parent in on_close_btn_clicked()"),
-                |window| window.expect("fail to downcast").close(),
-            );
-    }
-
     #[tracing::instrument]
     fn on_post_close_notif(win: &libhelium::Window) {
         let window_name = win.widget_name();
@@ -100,14 +82,10 @@ impl NotificationStack {
 
         let tx = NOTIF_DESTROY_CHANS.0.clone();
 
-        // tx.send(NotifStackEvent::Closed(window_id as usize)).await.unwrap();
-
         win.close();
 
         async_std::task::spawn(async move {
-            tx.send(NotifStackEvent::Closed(window_id as usize))
-                .await
-                .unwrap();
+            tx.send(NotifStackEvent::Closed(window_id)).await.unwrap();
         });
 
         // emit signal to close the notif
@@ -115,16 +93,22 @@ impl NotificationStack {
     }
 
     pub fn add(&mut self, mut notif: widget::Notification, app: &libhelium::Application) {
+        let id = format!("notif-{}", notif.id);
+        let span = tracing::debug_span!("add_notif", id);
+        let _enter = span.enter();
+        debug!("Adding new notif");
         let win = notif.as_window(app, self.0.len());
-        win.set_widget_name(&format!("notif-{}", notif.id));
+        win.set_widget_name(&id);
         // (notif.close_btn.as_ref())
         // .expect("No close button registered on notif")
         // .connect_clicked(Self::on_notif_close_btn_clicked);
 
+        trace!("Setting window as visible");
         win.set_visible(true);
         win.connect_destroy(Self::on_post_close_notif);
         notif.sched = Some(NotifSchedTimer::new());
-        self.0.push(notif.clone());
+        trace!("Connected NotifSchedTimer");
+        self.0.push(notif);
         // Now create a new thread to poll timers and close notifs
 
         // async_std::task::spawn(clone!(@weak win => async move {
@@ -138,30 +122,22 @@ impl NotificationStack {
         // }));
     }
 
-    // todo: recieve signals from NOTIF_DESTROY_CHANS.1 instead of using this method
-    pub fn poll(&mut self) {
-        println!("Polling notifs");
-
-        let mut notifs_to_rm = vec![];
-        for (i, notif) in self.0.iter().enumerate() {
-            if notif.sched.as_ref().expect("No notif sched").is_over() {
-                // pretend we're closing it
-                // Self::on_notif_close_btn_clicked(&notif.close_btn.as_ref().expect("No close btn"));
-                notifs_to_rm.push(i);
-            }
-        }
-        (notifs_to_rm.into_iter().enumerate()).for_each(|(n, i)| self.post_close_notif(i - n));
+    #[tracing::instrument(skip(self))]
+    pub fn poll(&mut self) -> Option<NotifStackEvent> {
+        self.0
+            .iter()
+            .find(|notif| notif.sched.as_ref().expect("No notif sched").is_over())
+            .map(|notif| {
+                debug!(id = notif.id, "Found notif that should be closed!");
+                NotifStackEvent::Closed(notif.id)
+            })
     }
 
     #[tracing::instrument(skip(self))]
-    pub fn remove(&mut self, index: usize) {
+    pub fn remove(&mut self, index: u32) {
         // find notification with ID == index and remove it
-        let a = self
-            .0
-            .iter()
-            .position(|notif| notif.id == index.try_into().unwrap());
-
-        if let Some(pos) = a {
+        if let Some(pos) = self.0.iter().position(|notif| notif.id == index) {
+            debug!(pos, "Removing notif");
             self.0.remove(pos);
         }
     }
@@ -169,18 +145,6 @@ impl NotificationStack {
     pub fn get(&self, index: usize) -> Option<&widget::Notification> {
         self.0.get(index)
     }
-
-    // pub async fn msg_poll(&mut self) -> Result<()> {
-    //     debug!("Polling for notif events");
-    //     let channel = NOTIF_DESTROY_CHANS.clone();
-
-    //     let (_tx, rx) = (channel.0.clone(), channel.1.clone());
-
-    //     loop {
-    //         let event = rx.recv().await?;
-    //         event.process(self);
-    //     }
-    // }
 }
 
 const APPLICATION_ID: &str = "com.fyralabs.shizuku";
@@ -203,10 +167,6 @@ impl Application {
         Self { app, stack }
     }
 
-    pub fn add(&mut self, notif: widget::Notification) {
-        self.stack.add(notif, &self.app);
-    }
-
     pub fn run(&mut self) -> gtk::glib::ExitCode {
         let mut self_clone = self.clone();
         gtk::glib::MainContext::default().spawn_local(async move {
@@ -216,6 +176,7 @@ impl Application {
         self.app.run()
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn poll_msg_queue(&mut self) {
         debug!("Polling for notif events");
         let msgs = NOTIF_DESTROY_CHANS.clone();
@@ -223,18 +184,16 @@ impl Application {
         let rx = msgs.1.clone();
 
         loop {
-            let event = rx.recv().await.unwrap();
+            if let Some(event) = self.stack.poll().or_else(|| rx.try_recv().ok()) {
+                debug!(?event, "Processing event");
 
-            // self.stack.poll();
-
-            tracing::debug!(?event, "Processing event");
-
-            match event {
-                NotifStackEvent::Closed(index) => {
-                    self.stack.remove(index);
-                }
-                NotifStackEvent::Added(notif) => {
-                    self.add(notif);
+                match event {
+                    NotifStackEvent::Closed(index) => {
+                        self.stack.remove(index);
+                    }
+                    NotifStackEvent::Added(notif) => {
+                        self.stack.add(notif, &self.app);
+                    }
                 }
             }
         }
@@ -257,9 +216,9 @@ fn main() -> Result<gtk::glib::ExitCode> {
 
     let mut application = Application::new();
 
-    async_std::task::spawn(clone!(@strong application => async move {
-        // application.poll_msg_queue().await;
-    }));
+    // async_std::task::spawn(clone!(@strong application => async move {
+    // application.poll_msg_queue().await;
+    // }));
 
     async_std::task::spawn(async {
         tracing::info!("Starting dbus server");
@@ -272,9 +231,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
 
         connection.request_name(dbus::DBUS_INTERFACE).await.unwrap();
 
-        loop {
-            std::future::pending::<()>().await;
-        }
+        std::future::pending::<()>().await;
     });
 
     // let application = libhelium::Application::builder()
