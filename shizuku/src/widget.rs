@@ -46,7 +46,8 @@ pub struct Notification {
     pub icon: Option<String>,
     pub urgency: Urgency,
     pub id: u32,
-    pub sched:crate::NotifSchedTimer,
+    pub sched: crate::NotifSchedTimer,
+    pub destroy_hdl_id: u64,
 }
 
 impl Notification {
@@ -67,12 +68,14 @@ impl Notification {
             .build();
 
         if let Some(icon) = &self.icon {
-            box_.append(&gtk::Image::builder()
-                .icon_size(gtk::IconSize::Large)
-                .icon_name(icon)
-                .width_request(60)
-                .height_request(50)
-                .build());
+            box_.append(
+                &gtk::Image::builder()
+                    .icon_size(gtk::IconSize::Large)
+                    .icon_name(icon)
+                    .width_request(60)
+                    .height_request(50)
+                    .build(),
+            );
         }
 
         let textbox = gtk::Box::builder()

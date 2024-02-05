@@ -302,6 +302,7 @@ impl NotificationsServer {
             urgency,
             id,
             sched: expire_timeout,
+            ..Default::default()
         };
 
         tracing::info!(?notification, "Received notification");

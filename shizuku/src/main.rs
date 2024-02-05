@@ -3,6 +3,7 @@ mod widget;
 
 use color_eyre::Result;
 use gio::prelude::ApplicationExtManual;
+use glib::{translate::FromGlib, ObjectExt};
 use gtk::prelude::{GtkWindowExt, WidgetExt};
 use std::collections::HashMap;
 use tracing::{debug, trace, warn};
@@ -98,7 +99,8 @@ impl NotificationStack {
 
         trace!("Setting window as visible");
         win.set_visible(true);
-        win.connect_destroy(Self::on_post_close_notif);
+        let hdl_id = win.connect_destroy(Self::on_post_close_notif);
+        notif.destroy_hdl_id = unsafe { hdl_id.as_raw() };
         self.0.insert(notif.id, (notif, win));
     }
 
@@ -108,9 +110,9 @@ impl NotificationStack {
     /// the window is closed and the notification is then removed from the notification stack.
     #[tracing::instrument(skip(self))]
     fn poll(&mut self) {
-        let Some((id, win)) = (self.0.iter())
+        let Some((id, win, hdl_id)) = (self.0.iter())
             .find(|(_, (notif, _))| notif.sched.is_over())
-            .map(|(&id, (_, win))| (id, win))
+            .map(|(&id, (notif, win))| (id, win, notif.destroy_hdl_id))
         else {
             return;
         };
@@ -119,6 +121,9 @@ impl NotificationStack {
         // FIXME: this triggers remove() twice because the destroy event fires after the window is
         // FIXME: dropped; however, without removing the window from memory, poll() will think the
         // FIXME: notif still exists in [NotificationStack].
+
+        // workaround: remove connect_destroy() first
+        win.disconnect(unsafe { glib::SignalHandlerId::from_glib(hdl_id) });
         self.remove(id);
     }
 
