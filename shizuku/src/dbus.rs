@@ -3,7 +3,7 @@ use std::sync::RwLock;
 use serde::{Deserialize, Serialize};
 use zbus::{dbus_interface, dbus_proxy, zvariant::Type, SignalContext};
 
-use crate::{NotifSchedTimer, NotifStackEvent, NOTIF_DESTROY_CHANS};
+use crate::{NotifSchedTimer, NotifStackEvent, NOTIF_CHANS};
 
 // An incrementing counter for notification IDs.
 lazy_static::lazy_static! {
@@ -271,26 +271,10 @@ impl NotificationsServer {
         // need a better way to serialize a{sv} to our struct with optional values?
         expire_timeout: i32,
     ) -> Result<u32, zbus::fdo::Error> {
-        // let hints: NotificationHints =
-        // serde_json::from_value(serde_json::to_value(hints).unwrap()).unwrap();
-        tracing::info!("Notify");
-        // let hints = serde_json::to_string(&hints).unwrap();
-        tracing::debug!(?hints, "hints");
-
-        // let hints = serde_json::to_string(&hints).unwrap();
-
-        // let hints: NotificationHints = serde_json::from_str(&hints).unwrap();
-
-        // serialize hints to a struct
-
-        let channel = NOTIF_DESTROY_CHANS.clone();
-
         // allocate a notification ID
         let id = get_notification_id();
 
         let urgency_int = hints.get("urgency");
-
-        tracing::debug!(?urgency_int, "urgency_int");
 
         let urgency = match urgency_int {
             Some(urgency) => {
@@ -300,36 +284,34 @@ impl NotificationsServer {
             None => Urgency::default(),
         };
 
-        tracing::debug!(?urgency, "urgency");
-
-        tracing::debug!(?id, "id");
-
-        // turn this arc into tuple
-        let (tx, _rx) = (channel.0.clone(), channel.1.clone());
-
         // expire_timeout is a hint that can be -1, or a positive integer
 
-        // if expire_timeout is -1, use default timeout
+        // SAFETY:
+        // This `as` conversion is safe and intentional. -1 will overflow to a really large value,
+        // and that value is definitely larger than [`MAX_DURATION`] and get capped to that limit.
+        let expire_timeout = NotifSchedTimer::with_duration_secs(expire_timeout as u128);
+        tracing::trace!(
+            duration = expire_timeout.duration,
+            "Connected NotifSchedTimer"
+        );
 
-        let expire_timeout = if expire_timeout == -1 {
-            NotifSchedTimer::new()
-        } else {
-            NotifSchedTimer::with_duration_secs(expire_timeout.try_into().unwrap())
-        };
-
-        // send the notification to the notification stack
         let notification = crate::widget::Notification {
             title: summary.to_string(),
             body: body.to_string(),
             icon: Some(app_icon.to_string()),
             urgency,
             id,
-            sched: Some(expire_timeout),
+            sched: expire_timeout,
         };
 
-        // send the notification to the notification stack
-        let _ = tx.send(NotifStackEvent::Added(notification)).await;
+        tracing::info!(?notification, "Received notification");
 
+        // send the notification to the notification stack
+        let _ = (NOTIF_CHANS
+            .0
+            .send(NotifStackEvent::Added(notification))
+            .await)
+            .map_err(|e| tracing::error!(?e, "Failed to send NotifStackEvent::Added"));
         Ok(0)
     }
 

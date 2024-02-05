@@ -1,14 +1,18 @@
 mod dbus;
 mod widget;
-use std::collections::HashMap;
 
 use color_eyre::Result;
 use gio::prelude::ApplicationExtManual;
 use gtk::prelude::{GtkWindowExt, WidgetExt};
+use std::collections::HashMap;
 use tracing::{debug, trace, warn};
 
+const APPLICATION_ID: &str = "com.fyralabs.shizuku";
+const NO_LOG_ENV_MSG: &str = "Logging fallback as debug as env `SHIZUKU_LOG` is undefined. See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives";
+/// Max duration of notification in secs
+const MAX_DURATION: u128 = 10;
 lazy_static::lazy_static! {
-    static ref NOTIF_DESTROY_CHANS: std::sync::Arc<(async_std::channel::Sender<NotifStackEvent>, async_std::channel::Receiver<NotifStackEvent>)>
+    static ref NOTIF_CHANS: std::sync::Arc<(async_std::channel::Sender<NotifStackEvent>, async_std::channel::Receiver<NotifStackEvent>)>
         = std::sync::Arc::new(async_std::channel::unbounded());
 }
 
@@ -28,19 +32,20 @@ pub struct NotifSchedTimer {
 impl NotifSchedTimer {
     pub fn new() -> Self {
         Self {
-            until: time_now() + 10 * 1000,
-            duration: 10,
+            until: time_now() + MAX_DURATION * 1000,
+            duration: MAX_DURATION,
         }
     }
 
     pub fn with_duration_secs(duration: u128) -> Self {
-        let duration = duration.min(10);
+        let duration = duration.min(MAX_DURATION);
         Self {
             until: time_now() + duration * 1000,
             duration,
         }
     }
 
+    #[inline]
     pub fn is_over(&self) -> bool {
         time_now() >= self.until
     }
@@ -52,10 +57,15 @@ pub enum NotifStackEvent {
     Added(widget::Notification),
 }
 
+/// A HashMap of notif ids and ([widget::Notification], [libhelium::Window]).
 #[derive(Clone, Default)]
 pub struct NotificationStack(HashMap<u32, (widget::Notification, libhelium::Window)>);
 
 impl NotificationStack {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn clear(&mut self) {
         self.0.clear();
     }
@@ -68,7 +78,7 @@ impl NotificationStack {
         // get window id by removing the "notif-" prefix
         let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
 
-        let tx = NOTIF_DESTROY_CHANS.0.clone();
+        let tx = &NOTIF_CHANS.0;
 
         win.close();
 
@@ -77,6 +87,7 @@ impl NotificationStack {
         });
     }
 
+    /// Adds a [widget::Notification] into the stack directly and shows the window.
     pub fn add(&mut self, mut notif: widget::Notification, app: &libhelium::Application) {
         let id = format!("notif-{}", notif.id);
         let span = tracing::debug_span!("add_notif", id);
@@ -84,35 +95,38 @@ impl NotificationStack {
         debug!("Adding new notif");
         let win = notif.as_window(app, self.0.len());
         win.set_widget_name(&id);
-        // (notif.close_btn.as_ref())
-        // .expect("No close button registered on notif")
-        // .connect_clicked(Self::on_notif_close_btn_clicked);
 
         trace!("Setting window as visible");
         win.set_visible(true);
         win.connect_destroy(Self::on_post_close_notif);
-        notif.sched = Some(NotifSchedTimer::new());
-        trace!("Connected NotifSchedTimer");
         self.0.insert(notif.id, (notif, win));
     }
 
+    /// Checks for notifications that have timed out and removes one.
+    ///
+    /// Once a timed-out notification (determined by [NotifSchedTimer::is_over]) is found,
+    /// the window is closed and the notification is then removed from the notification stack.
     #[tracing::instrument(skip(self))]
-    pub fn poll(&mut self) -> Option<NotifStackEvent> {
-        self.0
-            .iter()
-            .find(|(_, (notif, _))| notif.sched.as_ref().expect("No notif sched").is_over())
-            .map(|(id, (notif, win))| {
-                debug!(id, "Found notif that should be closed due to timeout!");
-                win.close();
-                NotifStackEvent::Closed(notif.id)
-            })
+    fn poll(&mut self) {
+        let Some((id, win)) = (self.0.iter())
+            .find(|(_, (notif, _))| notif.sched.is_over())
+            .map(|(&id, (_, win))| (id, win))
+        else {
+            return;
+        };
+        debug!(id, "Closing timed out notif");
+        win.close();
+        // FIXME: this triggers remove() twice because the destroy event fires after the window is
+        // FIXME: dropped; however, without removing the window from memory, poll() will think the
+        // FIXME: notif still exists in [NotificationStack].
+        self.remove(id);
     }
 
     #[tracing::instrument(skip(self))]
     pub fn remove(&mut self, index: u32) {
         debug!("Removing notif");
         self.0.remove(&index).map_or_else(
-            || debug!("notif not found"),
+            || warn!("notif not found"),
             |(notif, win)| trace!(?notif, ?win, "notif removed"),
         );
     }
@@ -121,8 +135,6 @@ impl NotificationStack {
         self.0.get(&index).map(|obj| &obj.0)
     }
 }
-
-const APPLICATION_ID: &str = "com.fyralabs.shizuku";
 
 #[derive(Clone)]
 pub struct Application {
@@ -160,23 +172,30 @@ impl Application {
     #[tracing::instrument(skip(self))]
     pub async fn poll_msg_queue(&mut self) {
         debug!("Polling for notif events");
-        let rx = NOTIF_DESTROY_CHANS.1.clone();
+        let rx = &NOTIF_CHANS.1;
 
         loop {
-            if let Some(event) = self.stack.poll().or_else(|| rx.try_recv().ok()) {
-                debug!(?event, "Processing event");
-
-                match event {
-                    NotifStackEvent::Closed(index) => {
-                        self.stack.remove(index);
-                    }
-                    NotifStackEvent::Added(notif) => {
-                        self.stack.add(notif, &self.app);
-                    }
-                }
-            }
             // we don't want CPU 100% usage
             async_std::task::sleep(std::time::Duration::from_millis(50)).await;
+            if !self.stack.is_empty() {
+                self.stack.poll();
+            }
+            let Ok(event) = rx.try_recv() else {
+                if rx.is_closed() {
+                    panic!("NOTIF_CHANS are closed");
+                }
+                continue; // rx.is_empty()
+            };
+            debug!(?event, "Processing event");
+
+            match event {
+                NotifStackEvent::Closed(index) => {
+                    self.stack.remove(index);
+                }
+                NotifStackEvent::Added(notif) => {
+                    self.stack.add(notif, &self.app);
+                }
+            }
         }
     }
 }
@@ -186,7 +205,10 @@ fn main() -> Result<gtk::glib::ExitCode> {
     color_eyre::install()?;
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::new(
-            std::env::var("SHIZUKU_LOG").unwrap_or_else(|_| "debug".to_string()),
+            std::env::var("SHIZUKU_LOG").unwrap_or_else(|_| {
+                println!("{NO_LOG_ENV_MSG}");
+                "debug".to_string()
+            }),
         ))
         .pretty()
         .init();

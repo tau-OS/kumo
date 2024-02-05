@@ -3,7 +3,11 @@ use glib::Cast;
 use gtk::prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use tracing::{debug, warn};
-const WINDOW_HEIGHT: i32 = 100;
+
+// top margin would be the default (window size * index)+ margin of 50
+// if index is 0 then give it 15
+const TOP_OFFSET: usize = 15;
+const WINDOW_HEIGHT: usize = 100;
 
 // thread_local! {
 //     pub static GTK_WINDOWS: std::sync::Arc<std::sync::Mutex<Vec<libhelium::Window>>> = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
@@ -42,30 +46,14 @@ pub struct Notification {
     pub icon: Option<String>,
     pub urgency: Urgency,
     pub id: u32,
-    // we need this to set the connect() stuff in the NotificationStack
-    // pub close_btn: Option<Button>,
-    pub sched: Option<crate::NotifSchedTimer>,
+    pub sched:crate::NotifSchedTimer,
 }
 
 impl Notification {
-    pub fn new(
-        title: String,
-        body: String,
-        icon: Option<String>,
-        urgency: Urgency,
-        id: u32,
-    ) -> Self {
-        Self {
-            title,
-            body,
-            icon,
-            urgency,
-            id,
-            // close_btn: None,
-            sched: None,
-        }
-    }
-
+    /// Creates [libhelium::Window] for the [Notification].
+    ///
+    /// `index` = number of active notifications not including this new one, i.e. what the index of
+    /// this notification will be once it gets added into the stack.
     pub fn as_window(&mut self, app: &libhelium::Application, index: usize) -> libhelium::Window {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
@@ -75,19 +63,16 @@ impl Notification {
             .margin_start(10)
             .margin_end(10)
             .width_request(400)
-            .height_request(WINDOW_HEIGHT)
+            .height_request(WINDOW_HEIGHT as i32)
             .build();
 
-        // no icon for now
-
-        let image = &gtk::Image::builder()
-            .icon_size(gtk::IconSize::Large)
-            // .size_request(50, 50)
-            .build();
         if let Some(icon) = &self.icon {
-            image.set_from_icon_name(Some(icon));
-            image.set_size_request(60, 50);
-            box_.append(image);
+            box_.append(&gtk::Image::builder()
+                .icon_size(gtk::IconSize::Large)
+                .icon_name(icon)
+                .width_request(60)
+                .height_request(50)
+                .build());
         }
 
         let textbox = gtk::Box::builder()
@@ -162,7 +147,6 @@ impl Notification {
         });
 
         action_box.append(&close_button);
-        // self.close_btn = Some(close_button);
 
         box_.append(&action_box);
 
@@ -175,16 +159,7 @@ impl Notification {
             .css_name("notif-toast")
             .build();
 
-        // top margin would be the default (window size * index)+ margin of 50
-        // if index is 0 then give it 15
-
-        let top_offset = 15;
-
-        let top_margin = if index == 0 {
-            top_offset
-        } else {
-            ((index * WINDOW_HEIGHT as usize) + 50 * index) + top_offset
-        };
+        let top_margin = (WINDOW_HEIGHT + 50) * index + TOP_OFFSET;
 
         debug!(?top_margin);
 
@@ -205,8 +180,6 @@ impl Notification {
             window.present();
         });
 
-        // let box_ = self.as_box();
-
         window.set_child(Some(&box_));
 
         // let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
@@ -214,24 +187,5 @@ impl Notification {
         // windows.push(window.clone());
 
         window
-
-        // box_
-    }
-
-    /// Keep polling until the current time is greater than the scheduled time,
-    /// then, destroy the window
-    pub async fn poll(&mut self) -> bool {
-        let sched = self.sched.as_mut();
-
-        if let Some(sched) = sched {
-            if sched.is_over() {
-                debug!("Sched is over");
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
     }
 }
