@@ -9,7 +9,13 @@ use std::collections::HashMap;
 use tracing::{debug, trace, warn};
 
 const APPLICATION_ID: &str = "com.fyralabs.shizuku";
-const NO_LOG_ENV_MSG: &str = "Logging fallback as debug as env `SHIZUKU_LOG` is undefined. See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives";
+#[cfg(debug_assertions)]
+const DEFAULT_LOG_LEVEL: &str = "debug";
+#[cfg(not(debug_assertions))]
+const DEFAULT_LOG_LEVEL: &str = "info";
+
+// this mightve been a lie since debug builds still use debug level
+const NO_LOG_ENV_MSG: &str = "Logging fallback as info as env `SHIZUKU_LOG` is undefined. See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives";
 /// Max duration of notification in secs
 const MAX_DURATION: u128 = 10;
 lazy_static::lazy_static! {
@@ -214,7 +220,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
         .with_env_filter(tracing_subscriber::EnvFilter::new(
             std::env::var("SHIZUKU_LOG").unwrap_or_else(|_| {
                 println!("{NO_LOG_ENV_MSG}");
-                "debug".to_string()
+                DEFAULT_LOG_LEVEL.to_string()
             }),
         ))
         .pretty()
