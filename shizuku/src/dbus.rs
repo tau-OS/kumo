@@ -295,7 +295,7 @@ impl NotificationsServer {
             "Connected NotifSchedTimer"
         );
 
-        let notification = crate::widget::Notification {
+        let notif = crate::widget::Notification {
             title: summary.to_string(),
             body: body.to_string(),
             icon: Some(app_icon.to_string()),
@@ -305,13 +305,10 @@ impl NotificationsServer {
             ..Default::default()
         };
 
-        tracing::info!(?notification, "Received notification");
+        tracing::info!(?notif, "Received notification");
 
         // send the notification to the notification stack
-        let _ = (NOTIF_CHANS
-            .0
-            .send(NotifStackEvent::Added(notification))
-            .await)
+        let _ = (NOTIF_CHANS.0.send(NotifStackEvent::Added(notif)).await)
             .map_err(|e| tracing::error!(?e, "Failed to send NotifStackEvent::Added"));
         Ok(0)
     }

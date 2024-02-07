@@ -1,9 +1,9 @@
 mod dbus;
+mod icon;
 mod widget;
 
 use color_eyre::Result;
-use gio::prelude::ApplicationExtManual;
-use glib::{translate::FromGlib, ObjectExt};
+use gio::prelude::{ApplicationExt, ApplicationExtManual};
 use gtk::prelude::{GtkWindowExt, WidgetExt};
 use std::collections::HashMap;
 use tracing::{debug, trace, warn};
@@ -106,8 +106,9 @@ impl NotificationStack {
 
         trace!("Setting window as visible");
         win.set_visible(true);
-        let hdl_id = win.connect_destroy(Self::on_post_close_notif);
-        notif.destroy_hdl_id = unsafe { hdl_id.as_raw() };
+        // FIXME: this does not get triggered at all
+        // let hdl_id = win.connect_destroy(Self::on_post_close_notif);
+        // notif.destroy_hdl_id = unsafe { hdl_id.as_raw() };
         self.0.insert(notif.id, (notif, win));
     }
 
@@ -117,9 +118,10 @@ impl NotificationStack {
     /// the window is closed and the notification is then removed from the notification stack.
     #[tracing::instrument(skip(self))]
     fn poll(&mut self) {
-        let Some((id, win, hdl_id)) = (self.0.iter())
+        let Some((id, win, _hdl_id)) = (self.0.iter())
             .find(|(_, (notif, _))| notif.sched.is_over())
-            .map(|(&id, (notif, win))| (id, win, notif.destroy_hdl_id))
+            .map(|(&id, (_notif, win))| (id, win, 0))
+        // 0 was notif.destroy_hdl_id
         else {
             return;
         };
@@ -130,7 +132,8 @@ impl NotificationStack {
         // FIXME: notif still exists in [NotificationStack].
 
         // workaround: remove connect_destroy() first
-        win.disconnect(unsafe { glib::SignalHandlerId::from_glib(hdl_id) });
+        // NOTE: This gets commented out because this does not get triggered at all
+        // win.disconnect(unsafe { glib::SignalHandlerId::from_glib(hdl_id) });
         self.remove(id);
     }
 
@@ -172,11 +175,16 @@ impl Application {
         Self { app, stack }
     }
 
+    fn activated(_: &libhelium::Application) {
+        tracing::info!("Application activated")
+    }
+
     pub fn run(&mut self) -> gtk::glib::ExitCode {
         let mut self_clone = self.clone();
         gtk::glib::MainContext::default().spawn_local(async move {
             self_clone.poll_msg_queue().await;
         });
+        self.app.connect_activate(Self::activated);
         let _ = self.app.hold();
         self.app.run()
     }
@@ -228,7 +236,7 @@ fn main() -> Result<gtk::glib::ExitCode> {
 
     let mut application = Application::new();
 
-    async_std::task::spawn(async {
+    gtk::glib::MainContext::default().spawn_local(async {
         tracing::info!("Starting dbus server");
         let connection = zbus::Connection::session().await.unwrap();
         connection

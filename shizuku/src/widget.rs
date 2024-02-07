@@ -47,7 +47,7 @@ pub struct Notification {
     pub urgency: Urgency,
     pub id: u32,
     pub sched: crate::NotifSchedTimer,
-    pub destroy_hdl_id: u64,
+    // pub destroy_hdl_id: u64,
 }
 
 impl Notification {
@@ -176,6 +176,8 @@ impl Notification {
             .css_name("notif-toast")
             .build();
 
+        // FIXME: wrong placaement when manually close notif then make more (will duplicate at same
+        // position due to using index of stack (which has new shorter length))
         let top_margin = (WINDOW_HEIGHT + 50) * index + TOP_OFFSET;
 
         debug!(?top_margin);
