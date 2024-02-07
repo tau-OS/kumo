@@ -64,7 +64,7 @@ impl Notification {
             .margin_start(10)
             .margin_end(10)
             // Set opacity to be barely transparent, works around https://github.com/WayfireWM/wayfire/issues/2125
-            .opacity(0.9999999)
+            .opacity(0.999999999)
             .width_request(400)
             .height_request(WINDOW_HEIGHT as i32)
             .build();
