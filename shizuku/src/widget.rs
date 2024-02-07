@@ -144,7 +144,21 @@ impl Notification {
             // parse window id by removing the "notif-" prefix
             let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
 
-            debug!(?window_name, ?window_id, "Notif window closed");
+            debug!(?window_name, ?window_id, "Clicked close button");
+
+            // WORKAROUND: Let's send a message to close the window
+
+            // FIXME: So main::NotificationStack::on_post_close_notif is not getting called at all
+            // unless we emit this message to the queue
+            // which makes this closure redundant
+
+            let tx = &crate::NOTIF_CHANS.0;
+
+            glib::MainContext::default().spawn_local(async move {
+                tx.send(crate::NotifStackEvent::Closed(window_id))
+                    .await
+                    .unwrap();
+            });
 
             window.close();
         });

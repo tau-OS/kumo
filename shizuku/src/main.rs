@@ -71,10 +71,11 @@ impl NotificationStack {
         self.0.clear();
     }
 
+    // FIXME: this does not get triggered at all
     #[tracing::instrument]
     fn on_post_close_notif(win: &libhelium::Window) {
         let window_name = win.widget_name();
-        debug!(?window_name, "Notif window closed");
+        debug!(?window_name, "Destroy event received");
 
         // get window id by removing the "notif-" prefix
         let window_id = window_name.split_at(6).1.parse::<u32>().unwrap();
@@ -176,7 +177,7 @@ impl Application {
 
     #[tracing::instrument(skip(self))]
     pub async fn poll_msg_queue(&mut self) {
-        debug!("Polling for notif events");
+        debug!("Polling the message queue for events");
         let rx = &NOTIF_CHANS.1;
 
         loop {
@@ -195,6 +196,7 @@ impl Application {
 
             match event {
                 NotifStackEvent::Closed(index) => {
+                    debug!(?index, "Removing notif because received close event");
                     self.stack.remove(index);
                 }
                 NotifStackEvent::Added(notif) => {
