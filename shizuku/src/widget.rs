@@ -63,8 +63,6 @@ impl Notification {
             .margin_bottom(10)
             .margin_start(10)
             .margin_end(10)
-            // Set opacity to be barely transparent, works around https://github.com/WayfireWM/wayfire/issues/2125
-            .opacity(0.999999999)
             .width_request(400)
             .height_request(WINDOW_HEIGHT as i32)
             .build();
@@ -174,6 +172,9 @@ impl Notification {
             .application(app)
             .resizable(false)
             .decorated(false)
+            // Set opacity to be barely transparent, works around https://github.com/WayfireWM/wayfire/issues/2125
+            // NOTE: Only 2 decimal places work, 3 or more will round up to 1.0, thus making it opaque again
+            .opacity(0.99)
             .css_classes(vec!["surface-container-lowest-bg-color", "x-large-radius"])
             .css_name("notif-toast")
             .build();
