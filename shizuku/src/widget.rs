@@ -69,14 +69,27 @@ impl Notification {
             .build();
 
         if let Some(icon) = &self.icon {
-            box_.append(
-                &gtk::Image::builder()
-                    .icon_size(gtk::IconSize::Large)
-                    .icon_name(icon)
-                    .width_request(60)
-                    .height_request(50)
-                    .build(),
-            );
+            // check if icon is a file path or a generic icon name
+
+            let img = {
+                // check if can be Path
+                if std::path::PathBuf::from(icon).is_file() {
+                    gtk::Image::builder()
+                        .file(icon)
+                        .icon_size(gtk::IconSize::Large)
+                        .css_classes(vec!["circle-radius"])
+                        .pixel_size(50)
+                        .build()
+                } else {
+                    gtk::Image::builder()
+                        .icon_name(icon)
+                        .icon_size(gtk::IconSize::Large)
+                        .css_classes(vec!["circle-radius"])
+                        .pixel_size(50)
+                        .build()
+                }
+            };
+            box_.append(&img);
         }
         if let Some(imgdata) = &self.image_data {
             box_.append(&gtk::Image::from_pixbuf(Some(&imgdata.into())));
