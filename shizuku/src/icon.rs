@@ -13,8 +13,8 @@ impl From<&ImageData> for gtk::gdk_pixbuf::Pixbuf {
             value.3,
             value.4,
             value.0,
-            value.2,
             value.1,
+            value.2,
         )
     }
 }
