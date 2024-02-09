@@ -80,9 +80,32 @@ impl Notification {
         // map icon to None if it's an empty string
         let icon = self.icon.clone().filter(|icon| !icon.is_empty());
 
-        if let Some(imgdata) = &self.image_data {
+        let img = {
+            let gimg = gtk::Image::builder()
+                .icon_size(gtk::IconSize::Large)
+                .margin_start(10)
+                .pixel_size(50)
+                .build();
+
+            if let Some(imgdata) = &self.image_data {
+                gimg.set_from_pixbuf(Some(&imgdata.into()));
+            } else if let Some(icon) = &icon {
+                // check if icon is a file path or a generic icon name
+                if std::path::PathBuf::from(icon).is_file() {
+                    gimg.set_from_file(Some(icon));
+                } else {
+                    gimg.set_from_icon_name(Some(icon));
+                }
+            }
+            gimg
+        };
+
+        box_.append(&img);
+
+        /*         if let Some(imgdata) = &self.image_data {
             let img = gtk::Image::from_pixbuf(Some(&imgdata.into()));
             img.set_pixel_size(50);
+            img.set_margin_start(10);
             img.set_icon_size(gtk::IconSize::Large);
             box_.append(&img);
         } else if let Some(icon) = &icon {
@@ -95,6 +118,7 @@ impl Notification {
                         .file(icon)
                         .icon_size(gtk::IconSize::Large)
                         // .css_classes(vec!["circle-radius"])
+                        .margin_start(10)
                         .pixel_size(50)
                         .build()
                 } else {
@@ -103,13 +127,14 @@ impl Notification {
                         .icon_size(gtk::IconSize::Large)
                         // .css_classes(vec!["circle-radius"])
                         .pixel_size(50)
+                        .margin_start(10)
                         .build()
                 }
             };
             box_.append(&img);
         } else {
             textbox.set_margin_start(60);
-        }
+        } */
 
         let title = gtk::Label::builder()
             .label(&self.title)
