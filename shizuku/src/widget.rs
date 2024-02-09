@@ -62,46 +62,54 @@ impl Notification {
             .spacing(10)
             .margin_top(10)
             .margin_bottom(10)
-            .margin_start(10)
+            .margin_start(0)
             .margin_end(10)
             .width_request(400)
             .height_request(WINDOW_HEIGHT as i32)
             .build();
+        // force box size to be 400x100 no matter what
+        box_.set_size_request(400, WINDOW_HEIGHT as i32);
 
-        if let Some(icon) = &self.icon {
+        let textbox = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .margin_top(10)
+            .spacing(10)
+            .hexpand(true)
+            .build();
+
+        // map icon to None if it's an empty string
+        let icon = self.icon.clone().filter(|icon| !icon.is_empty());
+
+        if let Some(imgdata) = &self.image_data {
+            let img = gtk::Image::from_pixbuf(Some(&imgdata.into()));
+            img.set_pixel_size(50);
+            img.set_icon_size(gtk::IconSize::Large);
+            box_.append(&img);
+        } else if let Some(icon) = &icon {
+            // check if icon is a file path or a generic icon name
+
             let img = {
                 // check if can be Path
                 if std::path::PathBuf::from(icon).is_file() {
                     gtk::Image::builder()
                         .file(icon)
                         .icon_size(gtk::IconSize::Large)
-                        .css_classes(vec!["circle-radius"])
+                        // .css_classes(vec!["circle-radius"])
                         .pixel_size(50)
                         .build()
                 } else {
                     gtk::Image::builder()
                         .icon_name(icon)
                         .icon_size(gtk::IconSize::Large)
-                        .css_classes(vec!["circle-radius"])
+                        // .css_classes(vec!["circle-radius"])
                         .pixel_size(50)
                         .build()
                 }
             };
             box_.append(&img);
+        } else {
+            textbox.set_margin_start(60);
         }
-        if let Some(imgdata) = &self.image_data {
-            let img = gtk::Image::from_pixbuf(Some(&imgdata.into()));
-            // img.set_pixel_size
-            img.set_size_request(50, 50);
-            box_.append(&img);
-        }
-
-        let textbox = gtk::Box::builder()
-            .orientation(gtk::Orientation::Vertical)
-            .margin_top(5)
-            .spacing(10)
-            .hexpand(true)
-            .build();
 
         let title = gtk::Label::builder()
             .label(&self.title)
@@ -118,10 +126,18 @@ impl Notification {
 
         let body = gtk::Label::builder()
             .label(&self.body)
+            .use_markup(true)
             .halign(gtk::Align::Start)
             .lines(3)
+            .max_width_chars(30)
+            .wrap(true)
+            .wrap_mode(gtk::pango::WrapMode::WordChar)
+            // .width_request(300)
             .ellipsize(gtk::pango::EllipsizeMode::End)
             .build();
+
+        // We add markup to the body too, conforming to XDG spec
+        body.set_markup(&self.body);
 
         textbox.append(&title);
         textbox.append(&body);
@@ -196,6 +212,10 @@ impl Notification {
             .css_classes(vec!["surface-container-lowest-bg-color", "x-large-radius"])
             .css_name("notif-toast")
             .build();
+
+        // force window size to be 400x100 no matter what
+
+        window.set_size_request(400, WINDOW_HEIGHT as i32);
 
         // FIXME: wrong placaement when manually close notif then make more (will duplicate at same
         // position due to using index of stack (which has new shorter length))
