@@ -4,6 +4,10 @@ description = "The Kiri Wayfire Shell"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level = "s"
+strip = "debuginfo"
+lto = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -26,4 +30,4 @@ tracing-subscriber = { version = "0.3", features = [
 
 
 [workspace]
-members = [ "shizuku","wayland-wf-shell"]
+members = ["shizuku", "wayland-wf-shell"]
