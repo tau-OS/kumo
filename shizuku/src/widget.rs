@@ -70,6 +70,52 @@ impl Notification {
         // force box size to be 400x100 no matter what
         box_.set_size_request(400, WINDOW_HEIGHT as i32);
 
+        let window = libhelium::Window::builder()
+            .title(&self.title)
+            .application(app)
+            .resizable(false)
+            .decorated(false)
+            // Set opacity to be barely transparent, works around https://github.com/WayfireWM/wayfire/issues/2125
+            // NOTE: Only 2 decimal places work, 3 or more will round up to 1.0, thus making it opaque again
+            .opacity(0.99)
+            .css_classes(vec!["surface-container-lowest-bg-color", "x-large-radius"])
+            .css_name("notif-toast")
+            .build();
+        window.init_layer_shell();
+        window.set_namespace("notification");
+        // This hack is to somehow get the funny window to be a layer window
+        while !window.is_layer_window() {
+            window.init_layer_shell();
+            window.set_layer(Layer::Overlay);
+        }
+
+        // force window size to be 400x100 no matter what
+
+        window.set_size_request(400, WINDOW_HEIGHT as i32);
+
+        // FIXME: wrong placaement when manually close notif then make more (will duplicate at same
+        // position due to using index of stack (which has new shorter length))
+        let top_margin = (WINDOW_HEIGHT + 50) * index + TOP_OFFSET;
+
+        debug!(?top_margin);
+
+        window.connect_show(move |window| {
+            window.auto_exclusive_zone_enable();
+
+            window.set_anchor(Edge::Top, true);
+            window.set_anchor(Edge::Right, true);
+            window.set_anchor(Edge::Bottom, false);
+            window.set_anchor(Edge::Left, false);
+
+            window.set_margin(Edge::Top, top_margin as i32 + 15);
+            window.set_margin(Edge::Right, 15);
+            window.present();
+        });
+
+        // let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
+
+        // windows.push(window.clone());
+
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .margin_top(10)
@@ -200,51 +246,7 @@ impl Notification {
         action_box.append(&close_button);
 
         box_.append(&action_box);
-
-        let window = libhelium::Window::builder()
-            .title(&self.title)
-            .application(app)
-            .resizable(false)
-            .decorated(false)
-            // Set opacity to be barely transparent, works around https://github.com/WayfireWM/wayfire/issues/2125
-            // NOTE: Only 2 decimal places work, 3 or more will round up to 1.0, thus making it opaque again
-            .opacity(0.99)
-            .css_classes(vec!["surface-container-lowest-bg-color", "x-large-radius"])
-            .css_name("notif-toast")
-            .build();
-
-        // force window size to be 400x100 no matter what
-
-        window.set_size_request(400, WINDOW_HEIGHT as i32);
-
-        // FIXME: wrong placaement when manually close notif then make more (will duplicate at same
-        // position due to using index of stack (which has new shorter length))
-        let top_margin = (WINDOW_HEIGHT + 50) * index + TOP_OFFSET;
-
-        debug!(?top_margin);
-
-        window.init_layer_shell();
-
-        window.set_layer(Layer::Overlay);
-
-        window.connect_show(move |window| {
-            window.auto_exclusive_zone_enable();
-
-            window.set_anchor(Edge::Top, true);
-            window.set_anchor(Edge::Right, true);
-            window.set_anchor(Edge::Bottom, false);
-            window.set_anchor(Edge::Left, false);
-
-            window.set_margin(Edge::Top, top_margin as i32 + 15);
-            window.set_margin(Edge::Right, 15);
-            window.present();
-        });
-
         window.set_child(Some(&box_));
-
-        // let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
-
-        // windows.push(window.clone());
 
         window
     }
