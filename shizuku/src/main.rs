@@ -4,7 +4,6 @@ mod widget;
 
 use color_eyre::Result;
 use gio::prelude::{ApplicationExt, ApplicationExtManual};
-use glib::Cast;
 use gtk::prelude::{GtkWindowExt, WidgetExt};
 use std::collections::HashMap;
 use tracing::{debug, trace, warn};
@@ -237,18 +236,45 @@ fn main() -> Result<gtk::glib::ExitCode> {
 
     let mut application = Application::new();
 
-    gtk::glib::MainContext::default().spawn_local(async {
+    let stopqueue = std::sync::Arc::new(crossbeam::queue::ArrayQueue::new(0));
+    let stopqc = stopqueue.clone();
+    gtk::glib::MainContext::default().spawn_local(async move {
         tracing::info!("Starting dbus server");
-        let connection = zbus::Connection::session().await.unwrap();
-        connection
+        let connection = match zbus::Connection::session().await {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(?e);
+                stopqc.push(()).unwrap();
+                return;
+            }
+        };
+        if let Err(e) = connection
             .object_server()
             .at(dbus::DBUS_OBJECT_PATH, dbus::NotificationsServer)
             .await
-            .unwrap();
+        {
+            tracing::error!(?e);
+            stopqc.push(()).unwrap();
+            return;
+        }
 
-        connection.request_name(dbus::DBUS_INTERFACE).await.unwrap();
+        if let Err(e) = connection.request_name(dbus::DBUS_INTERFACE).await {
+            tracing::error!(?e);
+            stopqc.push(()).unwrap();
+            return;
+        }
 
         std::future::pending::<()>().await;
+    });
+
+    glib::idle_add(move || {
+        for _ in 0..10 {
+            if stopqueue.is_full() {
+                panic!("Dbus thread stopped due to error.")
+            }
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+        glib::ControlFlow::Continue
     });
 
     // let application = libhelium::Application::builder()
