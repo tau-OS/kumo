@@ -284,6 +284,11 @@ impl NotificationsServer {
             None => Urgency::default(),
         };
 
+        let image_data = hints.get("image-data").map(|image_data| {
+            tracing::debug!("{image_data:#?}");
+            crate::icon::ImageData::from(image_data)
+        });
+
         // expire_timeout is a hint that can be -1, or a positive integer
 
         // SAFETY:
@@ -301,6 +306,7 @@ impl NotificationsServer {
             icon: Some(app_icon.to_string()),
             urgency,
             id,
+            image_data,
             sched: expire_timeout,
             ..Default::default()
         };

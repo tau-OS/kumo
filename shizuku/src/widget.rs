@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::dbus::Urgency;
 use glib::Cast;
 use gtk::prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt};
@@ -47,6 +49,7 @@ pub struct Notification {
     pub urgency: Urgency,
     pub id: u32,
     pub sched: crate::NotifSchedTimer,
+    pub image_data: Option<crate::icon::ImageData>,
     // pub destroy_hdl_id: u64,
 }
 
@@ -77,6 +80,9 @@ impl Notification {
                     .build(),
             );
         }
+        box_.append(&gtk::Image::from_pixbuf(
+            self.image_data.as_ref().map(|x| &x.into()),
+        ));
 
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
