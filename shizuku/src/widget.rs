@@ -83,8 +83,14 @@ impl Notification {
         let img = {
             let gimg = gtk::Image::builder()
                 .icon_size(gtk::IconSize::Large)
-                .margin_start(10)
+                .margin_start(20)
+                .margin_end(20)
                 .pixel_size(50)
+                .css_classes(vec!["circle-radius"])
+                .halign(gtk::Align::Center)
+                .valign(gtk::Align::Center)
+                .vexpand(false)
+                .name("icon")
                 .build();
 
             if let Some(imgdata) = &self.image_data {
@@ -96,45 +102,14 @@ impl Notification {
                 } else {
                     gimg.set_from_icon_name(Some(icon));
                 }
+            } else {
+                gimg.set_margin_end(0);
+                gimg.set_margin_start(0);
             }
             gimg
         };
 
         box_.append(&img);
-
-        /*         if let Some(imgdata) = &self.image_data {
-            let img = gtk::Image::from_pixbuf(Some(&imgdata.into()));
-            img.set_pixel_size(50);
-            img.set_margin_start(10);
-            img.set_icon_size(gtk::IconSize::Large);
-            box_.append(&img);
-        } else if let Some(icon) = &icon {
-            // check if icon is a file path or a generic icon name
-
-            let img = {
-                // check if can be Path
-                if std::path::PathBuf::from(icon).is_file() {
-                    gtk::Image::builder()
-                        .file(icon)
-                        .icon_size(gtk::IconSize::Large)
-                        // .css_classes(vec!["circle-radius"])
-                        .margin_start(10)
-                        .pixel_size(50)
-                        .build()
-                } else {
-                    gtk::Image::builder()
-                        .icon_name(icon)
-                        .icon_size(gtk::IconSize::Large)
-                        // .css_classes(vec!["circle-radius"])
-                        .pixel_size(50)
-                        .margin_start(10)
-                        .build()
-                }
-            };
-            box_.append(&img);
-        } else {
-            textbox.set_margin_start(60);
-        } */
 
         let title = gtk::Label::builder()
             .label(&self.title)
