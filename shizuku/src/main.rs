@@ -4,6 +4,7 @@ mod widget;
 
 use color_eyre::Result;
 use gio::prelude::{ApplicationExt, ApplicationExtManual};
+use glib::Cast;
 use gtk::prelude::{GtkWindowExt, WidgetExt};
 use std::collections::HashMap;
 use tracing::{debug, trace, warn};

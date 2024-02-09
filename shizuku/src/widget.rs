@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use crate::dbus::Urgency;
 use glib::Cast;
 use gtk::prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt};
@@ -80,9 +78,9 @@ impl Notification {
                     .build(),
             );
         }
-        box_.append(&gtk::Image::from_pixbuf(
-            self.image_data.as_ref().map(|x| &x.into()),
-        ));
+        if let Some(imgdata) = &self.image_data {
+            box_.append(&gtk::Image::from_pixbuf(Some(&imgdata.into())));
+        }
 
         let textbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
