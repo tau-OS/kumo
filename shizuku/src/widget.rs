@@ -69,8 +69,6 @@ impl Notification {
             .build();
 
         if let Some(icon) = &self.icon {
-            // check if icon is a file path or a generic icon name
-
             let img = {
                 // check if can be Path
                 if std::path::PathBuf::from(icon).is_file() {
@@ -92,7 +90,10 @@ impl Notification {
             box_.append(&img);
         }
         if let Some(imgdata) = &self.image_data {
-            box_.append(&gtk::Image::from_pixbuf(Some(&imgdata.into())));
+            let img = gtk::Image::from_pixbuf(Some(&imgdata.into()));
+            // img.set_pixel_size
+            img.set_size_request(50, 50);
+            box_.append(&img);
         }
 
         let textbox = gtk::Box::builder()
