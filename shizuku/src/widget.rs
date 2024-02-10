@@ -82,12 +82,8 @@ impl Notification {
             .css_name("notif-toast")
             .build();
         window.init_layer_shell();
+        window.set_layer(Layer::Overlay);
         window.set_namespace("notification");
-        // This hack is to somehow get the funny window to be a layer window
-        while !window.is_layer_window() {
-            window.init_layer_shell();
-            window.set_layer(Layer::Overlay);
-        }
 
         // force window size to be 400x100 no matter what
 
@@ -99,18 +95,15 @@ impl Notification {
 
         debug!(?top_margin);
 
-        window.connect_show(move |window| {
-            window.auto_exclusive_zone_enable();
+        window.auto_exclusive_zone_enable();
 
-            window.set_anchor(Edge::Top, true);
-            window.set_anchor(Edge::Right, true);
-            window.set_anchor(Edge::Bottom, false);
-            window.set_anchor(Edge::Left, false);
+        window.set_anchor(Edge::Top, true);
+        window.set_anchor(Edge::Right, true);
+        window.set_anchor(Edge::Bottom, false);
+        window.set_anchor(Edge::Left, false);
 
-            window.set_margin(Edge::Top, top_margin as i32 + 15);
-            window.set_margin(Edge::Right, 15);
-            window.present();
-        });
+        window.set_margin(Edge::Top, top_margin as i32 + 15);
+        window.set_margin(Edge::Right, 15);
 
         // let mut windows = GTK_WINDOWS.with(|windows| windows.lock().unwrap().clone());
 
