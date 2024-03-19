@@ -7,8 +7,11 @@ use gtk::TemplateChild;
 use gtk::{glib, prelude::*, subclass::prelude::*};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 
+// todo: allow access to child template widgets somehow??
 glib::wrapper! {
-    pub struct Bar(ObjectSubclass<imp::Bar>) @extends libhelium::ApplicationWindow, gtk::Window, gtk::Widget, libhelium::Window;
+    pub struct Bar(ObjectSubclass<imp::Bar>)
+        @extends libhelium::ApplicationWindow, gtk::Window, gtk::Widget, libhelium::Window;
+
 }
 
 impl Bar {
