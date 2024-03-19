@@ -1,4 +1,5 @@
 use color_eyre::Result;
+mod app;
 fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
@@ -10,6 +11,9 @@ fn main() -> Result<()> {
             std::env::var("KUMO_LOG").unwrap_or_else(|_| "info".to_string()),
         ))
         .init();
+
+    let app = app::Application::new();
+    app.run();
 
     Ok(())
 }
