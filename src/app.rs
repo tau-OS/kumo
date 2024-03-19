@@ -1,9 +1,6 @@
 use crate::widgets::bar::Bar;
 use crate::widgets::fleet::Fleet;
-use glib::subclass::types::ObjectSubclass;
-use gtk::{glib, prelude::*, subclass::prelude::*};
-use gtk::{CompositeTemplate, TemplateChild};
-use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use gtk::prelude::*;
 
 // todo: Maybe use D-Bus to talk through different components? Instead of using mpsc?
 

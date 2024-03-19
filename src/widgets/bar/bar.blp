@@ -18,14 +18,17 @@ template $Bar : He.ApplicationWindow {
         opacity: 0.8;
         orientation: horizontal;
         spacing: 10;
+        focus-on-click: false;
 
-        Button {
+        Button appmenu {
             opacity: 1;
-            
+            styles ["flat"]
             Image {
                 pixel-size: 64;
+                styles ["flat"]
                 icon-name: "view-app-grid-symbolic";
             }
+            focus-on-click: false;
         }
     }
 }
