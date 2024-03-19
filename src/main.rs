@@ -1,6 +1,7 @@
 use color_eyre::Result;
 mod app;
 mod widgets;
+mod util;
 fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
