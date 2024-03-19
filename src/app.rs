@@ -1,4 +1,5 @@
-use gtk::prelude::*;
+use glib::subclass::types::ObjectSubclass;
+use gtk::{prelude::*, CompositeTemplate, TemplateChild};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 
 // todo: Maybe use D-Bus to talk through different components? Instead of using mpsc?
@@ -29,6 +30,7 @@ impl Application {
 }
 
 // Fleet, the "panel" of the shell
+// todo: rewrite this entire thing to make use of the blueprint template
 pub struct Fleet {
     pub fleet: libhelium::ApplicationWindow,
 }
@@ -56,3 +58,27 @@ impl Fleet {
         Fleet { fleet }
     }
 }
+
+// test template
+/* use glib::Object;
+use gtk::{gio, glib};
+
+
+#[derive(CompositeTemplate, Default)]
+#[template(file = "src/ui/fleet.blp")]
+pub struct FleetTemplate {
+    // #[template_child]
+    // pub gtkbox: TemplateChild<gtk::Box>,
+}
+
+#[glib::object_subclass]
+impl ObjectSubclass for FleetTemplate {
+    const NAME: &'static str = "FleetTemplate";
+    type Type = super::Fleet;
+    type ParentType = gtk::Window;
+
+    fn new() -> Self {
+        Self::default()
+    }
+}
+ */
