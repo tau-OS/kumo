@@ -40,7 +40,7 @@ impl Fleet {
     fn on_clock_tick(&self) {
         self.time.set(chrono::Local::now());
         self.clock
-            .set_text(&self.time.get().format("%H:%M").to_string());
+            .set_text(&self.time.get().format("%H:%M:%S").to_string());
     }
 }
 
