@@ -13,7 +13,7 @@ pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     let launch_ctx = gio::AppLaunchContext::new();
 
     // let file = gio::File::for_path(file);
-    let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
+    // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
 
     // // // todo: fix above, comment below

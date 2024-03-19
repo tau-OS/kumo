@@ -1,13 +1,9 @@
-use std::cell::Cell;
-
 use crate::widgets;
-
 use super::*;
 use glib::subclass::object::ObjectImpl;
 // use glib::ControlFlow::Continue;
 use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
 use libhelium::subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl};
-use gtk::prelude::{ButtonExt, CheckButtonExt, ComboBoxExt, FlowBoxChildExt, FrameExt, ListBoxRowExt, ListItemExt, PopoverExt, GtkWindowExt};
 #[derive(Debug, Default, gtk::CompositeTemplate)]
 #[template(file = "src/widgets/fleet/fleet.blp")]
 pub struct Fleet {

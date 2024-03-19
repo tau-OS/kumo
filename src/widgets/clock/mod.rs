@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chrono::prelude::*;
-use glib::{subclass::types::ObjectSubclassExt, ObjectExt};
+use glib::subclass::types::ObjectSubclassExt;
 use gtk::prelude::WidgetExt;
 mod imp;
 pub enum TimeFormat {
@@ -43,16 +43,19 @@ impl Clock {
     pub fn new() -> Self {
         let obj: Self = glib::Object::new();
 
+        const TIME_FORMAT: &str = "12h";
         // connect on realization
 
         obj.connect_realize(|clock| {
             let clock = clock.clone(); // Clone the reference to ensure it lives long enough
+                                       // first tick is immediate to avoid a delay
+            clock.tick(TIME_FORMAT);
             glib::timeout_add_local(Duration::from_millis(500), move || {
-                clock.tick("24h");
+                clock.tick(TIME_FORMAT);
                 glib::ControlFlow::Continue
             });
         });
-        
+
         obj
     }
 
