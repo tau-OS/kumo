@@ -1,0 +1,30 @@
+using Gtk 4.0;
+using He 1;
+
+
+template $Bar : He.ApplicationWindow {
+    title: "Bar";
+    default-height: 60;
+    default-width: 200;
+
+    margin-bottom: 20;
+    maximized: false;
+
+    margin-end: 20;
+    opacity: 0.99;
+    focus-on-click: false;
+
+    Box iconlist {
+        opacity: 0.8;
+        orientation: horizontal;
+        spacing: 10;
+
+        Button {
+            opacity: 1;
+            Image {
+                icon-name: "document-new";
+            }
+        }
+    }
+}
+
