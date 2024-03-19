@@ -1,0 +1,42 @@
+using Gtk 4.0;
+using He 1;
+
+template $Fleet : He.ApplicationWindow {
+    default-height: 25;
+    height-request: 25;
+
+    title: "Fleet Panel";
+    opacity: 0.95;
+
+    Box appbox {
+        orientation: horizontal;
+        spacing: 5;
+        margin-start: 5;
+
+        Box spacer {
+            hexpand: true;
+            Image {
+                margin-start: 5;
+                icon-name: "sidebar-hide-symbolic";
+            }
+        }
+
+        // The actual box and stuff
+        Box fleetbox {
+            orientation: horizontal;
+            spacing: 5;
+
+            Button {
+                label: "Fleet";
+                icon-name: "view-app-grid-symbolic";
+            }
+
+
+            Button {
+                label: "Fleet";
+                icon-name: "view-app-grid-symbolic";
+            }
+        }
+    }
+
+}
