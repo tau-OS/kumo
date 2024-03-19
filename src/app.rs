@@ -21,6 +21,7 @@ impl Application {
             app.add_window(&fleet.fleet);
             fleet.fleet.present(); */
             let fleet = fleet::Fleet::new();
+            app.add_window(&fleet);
             // fleet.set_application(Some(app));
             //     ^ ❓???? doesn't satisfy `fleet::Fleet: IsA<gtk4::Window>`
             fleet.activate_default();
@@ -91,7 +92,7 @@ impl ObjectSubclass for FleetTemplate {
 mod fleet {
     use glib::subclass::object::ObjectImpl;
     use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
-    use libhelium::{ffi::HeApplication, subclass::application_window::HeApplicationWindowImpl};
+    use libhelium::{ffi::HeApplication, subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl}};
 
     use super::*;
     #[derive(Debug, Default, gtk::CompositeTemplate)]
@@ -129,8 +130,11 @@ mod fleet {
     impl HeApplicationWindowImpl for Fleet {}
     impl ApplicationWindowImpl for Fleet {}
     impl WindowImpl for Fleet {}
+    impl HeWindowImpl for Fleet {}
+    // unsafe impl IsA<gtk::Window> for Fleet {}
 }
 
 glib::wrapper! {
-    pub struct Fleet(ObjectSubclass<fleet::Fleet>) @extends gtk::Widget, libhelium::ApplicationWindow, gtk::Window;
+    // how the fuck am i supposed to make it consider this a gtk::Window
+    pub struct Fleet(ObjectSubclass<fleet::Fleet>) @extends libhelium::ApplicationWindow, gtk::Window, gtk::Widget, libhelium::Window;
 }
