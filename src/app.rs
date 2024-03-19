@@ -20,7 +20,7 @@ impl Application {
             /*             let fleet = Fleet::new(app.clone());
             app.add_window(&fleet.fleet);
             fleet.fleet.present(); */
-            let fleet = fleet::Fleet::new();
+            let fleet = Fleet::new();
             app.add_window(&fleet);
             // fleet.set_application(Some(app));
             //     ^ ❓???? doesn't satisfy `fleet::Fleet: IsA<gtk4::Window>`
@@ -137,4 +137,10 @@ mod fleet {
 glib::wrapper! {
     // how the fuck am i supposed to make it consider this a gtk::Window
     pub struct Fleet(ObjectSubclass<fleet::Fleet>) @extends libhelium::ApplicationWindow, gtk::Window, gtk::Widget, libhelium::Window;
+}
+
+impl Fleet {
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
 }
