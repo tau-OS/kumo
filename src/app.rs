@@ -22,9 +22,9 @@ impl Application {
             fleet.fleet.present(); */
             let fleet = Fleet::new();
             app.add_window(&fleet);
-            // fleet.set_application(Some(app));
+            fleet.set_application(Some(app));
             //     ^ ❓???? doesn't satisfy `fleet::Fleet: IsA<gtk4::Window>`
-            fleet.activate_default();
+            fleet.present();
         });
 
         Application { app }
@@ -92,13 +92,16 @@ impl ObjectSubclass for FleetTemplate {
 mod fleet {
     use glib::subclass::object::ObjectImpl;
     use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
-    use libhelium::{ffi::HeApplication, subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl}};
+    use libhelium::{
+        ffi::HeApplication,
+        subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl},
+    };
 
     use super::*;
     #[derive(Debug, Default, gtk::CompositeTemplate)]
     #[template(file = "src/ui/fleet.blp")]
     pub struct Fleet {
-        #[template_child]
+        #[template_child(id = "appbox")]
         pub gtkbox: TemplateChild<gtk::Box>,
     }
 
@@ -141,6 +144,25 @@ glib::wrapper! {
 
 impl Fleet {
     pub fn new() -> Self {
-        glib::Object::new()
+        let obj: Self = glib::Object::new();
+
+        obj.set_title(Some("Fleet"));
+        obj.set_default_size(800, 40);
+        obj.init_layer_shell();
+        obj.set_layer(Layer::Top);
+        obj.auto_exclusive_zone_enable();
+
+        let anchors = [
+            (Edge::Top, true),
+            (Edge::Bottom, false),
+            (Edge::Left, true),
+            (Edge::Right, true),
+        ];
+
+        for (edge, state) in anchors.iter() {
+            obj.set_anchor(*edge, *state);
+        }
+
+        obj
     }
 }
