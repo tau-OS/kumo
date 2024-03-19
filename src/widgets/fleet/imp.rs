@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use glib::subclass::object::ObjectImpl;
 use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
 use libhelium::subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl};
@@ -8,6 +10,10 @@ use super::*;
 pub struct Fleet {
     #[template_child(id = "appbox")]
     pub gtkbox: TemplateChild<gtk::Box>,
+
+    #[template_child(id = "clock")]
+    pub clock: TemplateChild<gtk::Label>,
+    pub time: Cell<chrono::DateTime<chrono::Local>>,
 }
 
 #[glib::object_subclass]
@@ -21,9 +27,20 @@ impl ObjectSubclass for Fleet {
     }
     fn class_init(klass: &mut Self::Class) {
         klass.bind_template();
+        klass.bind_template_callbacks();
     }
     fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
         obj.init_template();
+    }
+}
+
+#[gtk::template_callbacks]
+impl Fleet {
+    #[template_callback]
+    fn on_clock_tick(&self) {
+        self.time.set(chrono::Local::now());
+        self.clock
+            .set_text(&self.time.get().format("%H:%M").to_string());
     }
 }
 

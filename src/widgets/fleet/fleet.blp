@@ -14,6 +14,7 @@ template $Fleet : He.ApplicationWindow {
         spacing: 5;
         margin-start: 5;
 
+        [start]
         Box spacer {
             hexpand: true;
             Image {
@@ -23,23 +24,27 @@ template $Fleet : He.ApplicationWindow {
         }
 
         // The actual box and stuff
+        [end]
         Box fleetbox {
             orientation: horizontal;
             spacing: 10;
-
             Button {
+                
+                styles ["flat"]
                 label: "Fleet";
                 icon-name: "view-app-grid-symbolic";
             }
 
 
             Button {
+                styles ["flat"]
                 label: "Fleet";
                 icon-name: "view-app-grid-symbolic";
             }
 
             // test clock
             Label clock {
+                styles ["flat"]
                 label: "00:00";
                 margin-end: 5;
             }
