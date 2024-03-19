@@ -145,9 +145,6 @@ glib::wrapper! {
 impl Fleet {
     pub fn new() -> Self {
         let obj: Self = glib::Object::new();
-
-        obj.set_title(Some("Fleet"));
-        obj.set_default_size(800, 40);
         obj.init_layer_shell();
         obj.set_layer(Layer::Top);
         obj.auto_exclusive_zone_enable();
