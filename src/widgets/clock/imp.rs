@@ -42,9 +42,12 @@ impl Clock {
     pub fn on_clock_tick(&self, format: &str) {
         let ttime = chrono::Local::now();
         let tformat = TimeFormat::from(format);
+        let timestring = &tformat.format_time(self.time.get()).to_string();
+
+        self.clock_label.set_width_chars(timestring.len() as i32 + 2);
         self.time.set(ttime);
         self.clock_label
-            .set_text(&tformat.format_time(self.time.get()).to_string());
+            .set_text(timestring);
     }
 }
 

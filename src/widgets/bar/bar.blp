@@ -14,11 +14,16 @@ template $Bar : He.ApplicationWindow {
     opacity: 0.99;
     focus-on-click: false;
 
+    // notify => $on_bar_notify();
+    // notify::appmenu => $on_button_clicked();
+
     Box iconlist {
         opacity: 0.8;
         orientation: horizontal;
         spacing: 10;
         focus-on-click: false;
+
+        // notify::appmenu => $on_button_clicked();
 
         Button appmenu {
             opacity: 1;
@@ -29,6 +34,8 @@ template $Bar : He.ApplicationWindow {
                 icon-name: "view-app-grid-symbolic";
             }
             focus-on-click: false;
+            // on clicked, notify appmenu
+
         }
     }
 }

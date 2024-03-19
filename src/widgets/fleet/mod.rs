@@ -40,6 +40,6 @@ impl Fleet {
     }
 
     pub fn tick_clock(&self) {
-        imp::Fleet::on_clock_tick(self::imp::Fleet::from_obj(self));
+        // imp::Fleet::on_clock_tick(self::imp::Fleet::from_obj(self));
     }
 }

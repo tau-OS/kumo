@@ -9,12 +9,12 @@ template $Fleet : He.ApplicationWindow {
     title: "Fleet Panel";
     opacity: 0.95;
     focus-on-click: false;
-    styles ["flat", "solid"]
-    notify => $on_clock_tick();
+    styles ["flat", "solid", "ssd" ]
+    // notify => $on_clock_tick();
     // signal
-    notify::tick => $on_clock_tick();
+    // notify::tick => $on_clock_tick();
     // notify::selected => $on_clock_tick();
-    notify::activate => $on_clock_tick();
+    // notify::activate => $on_clock_tick();
     // loop
     
     Box appbox {
@@ -34,7 +34,7 @@ template $Fleet : He.ApplicationWindow {
         // The actual box and stuff
         [end]
         Box fleetbox {
-            halign: center;
+            // halign: center;
             orientation: horizontal;
             spacing: 10;
             Button {
@@ -51,13 +51,18 @@ template $Fleet : He.ApplicationWindow {
                 icon-name: "view-app-grid-symbolic";
             }
 
+
+            // margin-start: 20;
             // test clock
-            Label clock {
-                halign: center;
-                styles ["flat"]
-                label: "00:00";
-                margin-end: 20;
-                margin-start: 20;
+            [end]
+            Box clockbox {
+                orientation: horizontal;
+                spacing: 5;
+                // margin-start: 20;
+                // Label {
+                //     label: "00:00";
+                //     width-chars: 5;
+                // }
             }
         }
     }
