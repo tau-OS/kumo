@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::widgets::bar::Bar;
 use crate::widgets::fleet::Fleet;
 use gtk::prelude::*;
@@ -22,14 +20,6 @@ impl Application {
             // app.add_window(&fleet);
             fleet.set_application(Some(app));
             fleet.present();
-
-
-            // Clock ticker
-            glib::timeout_add_local(Duration::from_millis(500), move || {
-                fleet.tick_clock();
-                glib::ControlFlow::Continue
-            });
-
             let bar = Bar::new();
             // app.add_window(&bar);
             bar.set_application(Some(app));

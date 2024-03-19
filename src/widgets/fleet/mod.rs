@@ -27,6 +27,17 @@ impl Fleet {
             obj.set_anchor(*edge, *state);
         }
 
+        // todo: replace with Clock widget
+        obj.connect_local("realize", false, move |args| {
+            let this = args[0].get::<Fleet>().unwrap();
+            glib::timeout_add_local(std::time::Duration::from_millis(500), move || {
+                this.tick_clock();
+                glib::ControlFlow::Continue
+            });
+
+            None
+        });
+
         obj
     }
 
