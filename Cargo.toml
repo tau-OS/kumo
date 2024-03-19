@@ -35,7 +35,7 @@ libhelium = { version = "0.1.0", features = ["gtk_v4_10", "v1_6"] }
 [dependencies.gtk]
 version = "0.7.0"
 package = "gtk4"
-features = ["v4_10"]
+features = ["v4_10", "blueprint"]
 
 
 

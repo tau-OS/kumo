@@ -1,17 +1,13 @@
 using Gtk 4.0;
 using He 1;
 
-Application {
-
-}
-
 template $Fleet : He.Window {
     default-height: 25;
     height-request: 25;
 
     title: "Fleet Panel";
 
-    Box {
+    Box appbox {
         orientation: horizontal;
         spacing: 5;
 
