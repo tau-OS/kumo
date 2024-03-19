@@ -29,4 +29,8 @@ impl Fleet {
 
         obj
     }
+
+    pub fn tick_clock(&self) {
+        imp::Fleet::on_clock_tick(self::imp::Fleet::from_instance(self));
+    }
 }

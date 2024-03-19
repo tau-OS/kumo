@@ -1,10 +1,10 @@
 use std::cell::Cell;
 
+use super::*;
 use glib::subclass::object::ObjectImpl;
+use glib::ControlFlow::Continue;
 use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
 use libhelium::subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl};
-
-use super::*;
 #[derive(Debug, Default, gtk::CompositeTemplate)]
 #[template(file = "src/widgets/fleet/fleet.blp")]
 pub struct Fleet {
@@ -37,7 +37,7 @@ impl ObjectSubclass for Fleet {
 #[gtk::template_callbacks]
 impl Fleet {
     #[template_callback]
-    fn on_clock_tick(&self) {
+    pub fn on_clock_tick(&self) {
         self.time.set(chrono::Local::now());
         self.clock
             .set_text(&self.time.get().format("%H:%M:%S").to_string());
