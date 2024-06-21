@@ -42,4 +42,4 @@ features = ["v4_10", "blueprint"]
 
 
 [workspace]
-members = ["shizuku", "wayland-wf-shell"]
+members = [ "moya","shizuku", "wayland-wf-shell"]
