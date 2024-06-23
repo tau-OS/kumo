@@ -20,11 +20,11 @@
 use clap::Parser;
 use color_eyre::Result;
 pub mod backend;
-pub mod ui;
-mod logger;
+pub mod error;
 pub mod input;
+mod logger;
 pub mod state;
-
+pub mod ui;
 
 #[derive(Debug, Clone, clap::ValueEnum)]
 pub enum MoyaBackend {
@@ -33,13 +33,27 @@ pub enum MoyaBackend {
     Udev,
 }
 
+/// Returns the default backend depending on what's available right now.
+pub fn default_backend() -> MoyaBackend {
+    if std::env::var_os("DISPLAY").is_some() || std::env::var_os("WAYLAND_DISPLAY").is_some() {
+        MoyaBackend::Winit
+    } else {
+        MoyaBackend::Udev
+    }
+}
+
 // CLI launcher for compositor
 /// Moya is a Wayland compositor for Linux, written in Rust.
 /// It is part of the KIRI desktop environment.
 #[derive(Parser)]
 pub struct MoyaLauncher {
     /// Rendering backend to use
-    #[clap(short = 'B', long, default_value = "winit")]
+    #[clap(
+        short = 'B',
+        long,
+        default_value = "default_backend()",
+        env = "MOYA_BACKEND"
+    )]
     backend: MoyaBackend,
 }
 

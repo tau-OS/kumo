@@ -3,8 +3,10 @@ use smithay::{
     desktop::{PopupManager, Space, Window},
     input::{Seat, SeatHandler, SeatState},
     wayland::{
-        compositor::CompositorState, selection::data_device::DataDeviceState,
-        shell::xdg::XdgShellState, shm::ShmState,
+        compositor::CompositorState,
+        selection::data_device::DataDeviceState,
+        shell::xdg::{decoration::XdgDecorationState, XdgShellState},
+        shm::ShmState,
     },
 };
 use tracing::instrument;
@@ -14,13 +16,20 @@ use wayland_server::{
 };
 
 #[derive(Debug)]
+pub struct XdgShellHandler {
+    pub state: XdgShellState,
+    pub decorations: XdgDecorationState,
+}
+
+#[derive(Debug)]
 pub struct MoyaState {
     pub backend_state: crate::backend::BackendState,
-    pub xdg_shell: XdgShellState,
+    pub xdg_shell: XdgShellHandler,
     pub compositor: CompositorState,
     pub shm: ShmState,
     pub data_device: DataDeviceState,
-    pub seats: Vec<Seat<Self>>,
+    // pub seats: Vec<Seat<Self>>,
+    pub xdg_decoration_state: XdgDecorationState,
 }
 
 impl From<crate::MoyaBackend> for MoyaState {
@@ -37,7 +46,8 @@ impl From<crate::MoyaBackend> for MoyaState {
             compositor: todo!(),
             shm: todo!(),
             data_device: todo!(),
-            seats: todo!(),
+            // seats: todo!(),
+            xdg_decoration_state: todo!(),
         }
     }
 }
@@ -48,14 +58,14 @@ impl From<crate::MoyaBackend> for MoyaState {
 //     }
 // }
 
-impl SeatHandler for MoyaState {
-    type KeyboardFocus;
+// impl SeatHandler for MoyaState {
+//     type KeyboardFocus;
 
-    type PointerFocus;
+//     type PointerFocus;
 
-    type TouchFocus;
+//     type TouchFocus;
 
-    fn seat_state(&mut self) -> &mut SeatState<Self> {
-        todo!()
-    }
-}
+//     fn seat_state(&mut self) -> &mut SeatState<Self> {
+//         todo!()
+//     }
+// }

@@ -9,6 +9,12 @@ glib::wrapper! {
     pub struct Fleet(ObjectSubclass<imp::Fleet>) @extends libhelium::ApplicationWindow, gtk::Window, gtk::Widget, libhelium::Window;
 }
 
+impl Default for Fleet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Fleet {
     pub fn new() -> Self {
         let obj: Self = glib::Object::new();

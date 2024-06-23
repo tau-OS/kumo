@@ -1,7 +1,6 @@
 use glib::subclass::object::ObjectImpl;
 use gtk::{
     subclass::widget::{CompositeTemplateClass, WidgetImpl},
-    template_callbacks,
 };
 use libhelium::subclass::{application_window::HeApplicationWindowImpl, window::HeWindowImpl};
 

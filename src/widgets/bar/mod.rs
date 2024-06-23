@@ -14,6 +14,12 @@ glib::wrapper! {
 
 }
 
+impl Default for Bar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Bar {
     pub fn new() -> Self {
         let obj: Self = glib::Object::new();
@@ -40,10 +46,16 @@ glib::wrapper! {
     pub struct AppIcon(ObjectSubclass<imp::AppIcon>) @extends gtk::Button, gtk::Widget;
 }
 
+impl Default for AppIcon {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppIcon {
     pub fn new() -> Self {
-        let obj = glib::Object::new();
+        
 
-        obj
+        glib::Object::new()
     }
 }

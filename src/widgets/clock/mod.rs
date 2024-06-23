@@ -4,7 +4,9 @@ use chrono::prelude::*;
 use glib::subclass::types::ObjectSubclassExt;
 use gtk::prelude::WidgetExt;
 mod imp;
+#[derive(Default)]
 pub enum TimeFormat {
+    #[default]
     TwentyFourHour,
     TwelveHour,
 }
@@ -13,11 +15,6 @@ glib::wrapper! {
     pub struct Clock(ObjectSubclass<imp::Clock>) @extends gtk::Box, gtk::Widget;
 }
 
-impl Default for TimeFormat {
-    fn default() -> Self {
-        TimeFormat::TwentyFourHour
-    }
-}
 
 impl TimeFormat {
     pub fn format_time(&self, time: DateTime<Local>) -> String {
@@ -36,6 +33,12 @@ impl From<&str> for TimeFormat {
             "12h" => TimeFormat::TwelveHour,
             _ => TimeFormat::TwentyFourHour,
         }
+    }
+}
+
+impl Default for Clock {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
