@@ -13,7 +13,7 @@ use wayland_server::{
 };
 
 // ref https://github.com/pop-os/cosmic-comp/blob/master/src/state.rs
-// ref https://github.com/pop-os/cosmic-comp/blob/254c583b5dc1c9435a51d1817facb1f0c2125637/src/wayland/handlers/seat.rs#L10
+// ref https://github.com/pop-os/cosmic-comp/blob/master/src/wayland/handlers/seat.rs
 
 use crate::MoyaBackend;
 
