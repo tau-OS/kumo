@@ -44,6 +44,9 @@ pub fn default_backend() -> MoyaBackend {
     }
 }
 
+// note to maintainers
+// early development, for code reference refer to https://github.com/pop-os/cosmic-comp fully
+
 // CLI launcher for compositor
 /// Moya is a Wayland compositor for Linux, written in Rust.
 /// It is part of the KIRI desktop environment.
@@ -67,16 +70,11 @@ fn main() -> Result<()> {
 
     let m = MoyaLauncher::parse(); // todo: implement
 
-
     let backend_state = backend::BackendState::from(m.backend);
 
-    // let event_loop = 
-
-    
+    // let event_loop =
 
     // something something
-
-
 
     Ok(())
 }
