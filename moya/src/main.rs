@@ -1,5 +1,30 @@
+#![warn(clippy::complexity)]
+#![warn(clippy::correctness)]
+#![warn(clippy::nursery)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::perf)]
+#![warn(clippy::style)]
+#![warn(clippy::suspicious)]
+// followings are from clippy::restriction
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::unwrap_used)]
+#![warn(clippy::expect_used)]
+#![warn(clippy::format_push_string)]
+#![warn(clippy::get_unwrap)]
+#![allow(clippy::missing_inline_in_public_items)]
+#![allow(clippy::implicit_return)]
+#![allow(clippy::blanket_clippy_restriction_lints)]
+#![allow(clippy::pattern_type_mismatch)]
 use clap::Parser;
 use color_eyre::Result;
+pub mod backend;
+pub mod ui;
+mod logger;
+pub mod input;
+pub mod state;
+
 
 #[derive(Debug, Clone, clap::ValueEnum)]
 pub enum MoyaBackend {
@@ -21,12 +46,7 @@ pub struct MoyaLauncher {
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    // todo: dedicated logger struct
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::new(
-            std::env::var("KUMO_LOG").unwrap_or_else(|_| "info".to_string()),
-        ))
-        .init();
+    crate::logger::init();
 
     MoyaLauncher::parse(); // todo: implement
 
