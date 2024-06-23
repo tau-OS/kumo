@@ -1,12 +1,9 @@
 use smithay::{
     delegate_output,
-    desktop::{PopupManager, Space, Window},
+    desktop::{LayerSurface, PopupKind, PopupManager, Space, Window},
     input::{Seat, SeatHandler, SeatState},
     wayland::{
-        compositor::CompositorState,
-        selection::data_device::DataDeviceState,
-        shell::xdg::{decoration::XdgDecorationState, XdgShellState},
-        shm::ShmState,
+        compositor::CompositorState, selection::data_device::DataDeviceState, session_lock::LockSurface, shell::xdg::{decoration::XdgDecorationState, XdgShellState}, shm::ShmState
     },
 };
 use tracing::instrument;
@@ -15,26 +12,48 @@ use wayland_server::{
     Display,
 };
 
+// ref https://github.com/pop-os/cosmic-comp/blob/master/src/state.rs
+// ref https://github.com/pop-os/cosmic-comp/blob/254c583b5dc1c9435a51d1817facb1f0c2125637/src/wayland/handlers/seat.rs#L10
+
+use crate::MoyaBackend;
+
 #[derive(Debug)]
 pub struct XdgShellHandler {
     pub state: XdgShellState,
     pub decorations: XdgDecorationState,
 }
 
+/// Current compositor state, should be used to pass around
 #[derive(Debug)]
 pub struct MoyaState {
+    // We probably don't want backend state to be inside tis
     pub backend_state: crate::backend::BackendState,
     pub xdg_shell: XdgShellHandler,
     pub compositor: CompositorState,
     pub shm: ShmState,
     pub data_device: DataDeviceState,
     // pub seats: Vec<Seat<Self>>,
-    pub xdg_decoration_state: XdgDecorationState,
+    pub space: Space<Window>,
+    pub popup_manager: PopupManager,
+    pub seat: SeatState<Self> // todo: Implement 
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum KeyboardFocusTarget {
+    // Element(CosmicMapped),
+    // Fullscreen(CosmicSurface),
+    // Group(WindowGroup),
+    LayerSurface(LayerSurface),
+    Popup(PopupKind),
+    LockSurface(LockSurface),
+}
+
+
 
 impl From<crate::MoyaBackend> for MoyaState {
     fn from(value: crate::MoyaBackend) -> Self {
         Self {
+
             backend_state: match value {
                 crate::MoyaBackend::Winit => {
                     crate::backend::BackendState::Winit(Default::default())
@@ -47,10 +66,43 @@ impl From<crate::MoyaBackend> for MoyaState {
             shm: todo!(),
             data_device: todo!(),
             // seats: todo!(),
-            xdg_decoration_state: todo!(),
+
+            popup_manager: todo!(),
+            seat: todo!(),
+            space: todo!(),
         }
     }
 }
+
+impl MoyaState {
+    pub fn new(display: &mut Display<Self>, backend: MoyaBackend) -> Self {
+        let display_handle = display.handle();
+        let mut seat_state: SeatState<Self> = SeatState::new();
+        let seat = SeatState::new();
+        Self {
+            backend_state: match backend {
+                crate::MoyaBackend::Winit => {
+                    crate::backend::BackendState::Winit(Default::default())
+                }
+                crate::MoyaBackend::X11 => todo!(),
+                crate::MoyaBackend::Udev => todo!(),
+            },
+            compositor: todo!("CompositorState::new(&display_handle)"),
+            shm: ShmState::new(&display_handle, vec![]),
+            data_device: DataDeviceState::new(&display_handle),
+            xdg_shell: XdgShellHandler {
+                state: XdgShellState::new(&display_handle),
+                decorations: XdgDecorationState::new(&display_handle),
+            },
+            space: Space::default(),
+            popup_manager: PopupManager::default(),
+            // backend_state: todo!()
+            seat
+        }
+    }
+}
+
+delegate_output!(MoyaState);
 
 // impl MoyaState {
 //     pub fn create_backend(backend: crate::MoyaBackend) -> Self {
@@ -58,14 +110,15 @@ impl From<crate::MoyaBackend> for MoyaState {
 //     }
 // }
 
-// impl SeatHandler for MoyaState {
-//     type KeyboardFocus;
+/* impl SeatHandler for MoyaState {
+    type KeyboardFocus = KeyboardFocusTarget;
 
-//     type PointerFocus;
+    type PointerFocus;
 
-//     type TouchFocus;
+    type TouchFocus;
 
-//     fn seat_state(&mut self) -> &mut SeatState<Self> {
-//         todo!()
-//     }
-// }
+    fn seat_state(&mut self) -> &mut SeatState<Self> {
+        todo!()
+    }
+}
+ */
