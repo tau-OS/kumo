@@ -2,7 +2,9 @@ use std::cell::RefCell;
 
 use calloop::{ping, EventLoop};
 use smithay::backend::renderer::damage::OutputDamageTracker;
-use smithay::backend::winit::{self, WinitEvent, WinitGraphicsBackend, WinitVirtualDevice};
+use smithay::backend::winit::{
+    self, WinitEvent, WinitEventLoop, WinitGraphicsBackend, WinitVirtualDevice,
+};
 use smithay::output::Scale;
 use smithay::{
     backend::renderer::{
@@ -18,6 +20,7 @@ pub struct WinitBackend {
     pub output: Output,
     pub graphics_backend: WinitGraphicsBackend<GlowRenderer>, // or MultiRenderer or rawdog GLES
     damage_tracker: OutputDamageTracker,
+    // pub event_loop: EventLoop<crate::state::MoyaState>,
 }
 // https://www.x.org/releases/X11R7.5/doc/damageproto/damageproto.txt
 impl Default for WinitBackend {
@@ -26,9 +29,17 @@ impl Default for WinitBackend {
     }
 }
 
-impl super::BackendInterface for WinitBackend {}
+impl super::BackendInterface for WinitBackend {
+    fn event_loop(&self) -> &calloop::LoopHandle<'static, Self> {
+        todo!()
+    }
+    fn dispatch(&mut self) {
+        self.dispatch();
+    }
+}
 
 impl WinitBackend {
+    // todo: error handling
     pub fn init() -> Self {
         let output = Output::new(
             "winit".to_string(),
@@ -46,25 +57,29 @@ impl WinitBackend {
 
         // todo!();
 
-        let (mut backend, mut input) =
-            smithay::backend::winit::init().expect(&format!("Failed to initilize winit backend"));
+        let (mut backend, mut input): (WinitGraphicsBackend<GlowRenderer>, WinitEventLoop) =
+            smithay::backend::winit::init().expect("Failed to initialize winit backend");
         // init_shaders(backend.renderer()).context("Failed to initialize renderer")?;
 
         // init_egl_client_side(dh, state, &mut backend)?;
 
-        let name = format!("WINIT-0");
         let size = backend.window_size();
-        let props = PhysicalProperties {
-            size: (0, 0).into(),
-            subpixel: Subpixel::Unknown,
-            make: "COSMIC".to_string(),
-            model: name.clone(),
-        };
+
+        let damage = Rectangle::from_loc_and_size((0, 0), size);
+
         let mode = Mode {
-            size: (size.w as i32, size.h as i32).into(),
+            size: (size.w, size.h).into(),
             refresh: 60_000,
         };
-        let output = Output::new(name, props);
+        let output = Output::new(
+            "winit".to_string(),
+            PhysicalProperties {
+                size: (size.w, size.h).into(),
+                subpixel: Subpixel::Unknown,
+                make: "Moya".to_string(),
+                model: "Winit".to_string(),
+            },
+        );
         output.add_mode(mode);
         output.set_preferred(mode);
         output.change_current_state(
@@ -83,8 +98,10 @@ impl WinitBackend {
 
         let (event_ping, event_source) =
             ping::make_ping().expect("Failed to init eventloop timer for winit");
+
         let (render_ping, render_source) =
             ping::make_ping().expect("Failed to init eventloop timer for winit"); // expect is fine for now
+
         let event_ping_handle = event_ping.clone();
         let render_ping_handle = render_ping.clone();
         // let mut token = Some(
@@ -120,6 +137,7 @@ impl WinitBackend {
         //         };
         //     })
         //     .map_err(|_| anyhow::anyhow!("Failed to init eventloop timer for winit"))?;
+        let damage_tracked_renderer = OutputDamageTracker::from_output(&output);
         event_ping.ping();
         // WinitState {
         //     backend,
@@ -127,10 +145,20 @@ impl WinitBackend {
         //     damage_tracker: OutputDamageTracker::from_output(&output),
         //     fps,
         // }
+
+
+        // todo: complete this!
+
         Self {
             output,
-            graphics_backend: todo!(),
-            damage_tracker: todo!(),
+            graphics_backend: backend,
+            damage_tracker: damage_tracked_renderer,
+            // event_loop,
         }
+    }
+    pub fn dispatch(&mut self) {
+        // get event loop data state??
+
+        
     }
 }

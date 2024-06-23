@@ -17,6 +17,7 @@
 #![allow(clippy::implicit_return)]
 #![allow(clippy::blanket_clippy_restriction_lints)]
 #![allow(clippy::pattern_type_mismatch)]
+use backend::winit;
 use clap::Parser;
 use color_eyre::Result;
 pub mod backend;
@@ -34,6 +35,7 @@ pub enum MoyaBackend {
 }
 
 /// Returns the default backend depending on what's available right now.
+#[must_use]
 pub fn default_backend() -> MoyaBackend {
     if std::env::var_os("DISPLAY").is_some() || std::env::var_os("WAYLAND_DISPLAY").is_some() {
         MoyaBackend::Winit
@@ -51,7 +53,8 @@ pub struct MoyaLauncher {
     #[clap(
         short = 'B',
         long,
-        default_value = "default_backend()",
+        // default_with = "default_backend",
+        default_value = "winit",
         env = "MOYA_BACKEND"
     )]
     backend: MoyaBackend,
@@ -62,7 +65,18 @@ fn main() -> Result<()> {
 
     crate::logger::init();
 
-    MoyaLauncher::parse(); // todo: implement
+    let m = MoyaLauncher::parse(); // todo: implement
+
+
+    let backend_state = backend::BackendState::from(m.backend);
+
+    // let event_loop = 
+
+    
+
+    // something something
+
+
 
     Ok(())
 }

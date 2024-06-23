@@ -52,4 +52,11 @@ pub trait DrmRenderer {}
 #[derive(Debug, Default)]
 pub struct DrmBackend {}
 
-impl super::BackendInterface for DrmBackend {}
+impl super::BackendInterface for DrmBackend {
+    fn event_loop(&self) -> &calloop::LoopHandle<'static, Self>
+        where
+            Self: Sized {
+        
+        todo!()
+    }
+}

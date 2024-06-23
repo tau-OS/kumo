@@ -1,6 +1,6 @@
-mod drm;
-mod winit;
-mod x11;
+pub mod drm;
+pub mod winit;
+pub mod x11;
 
 use calloop::LoopHandle;
 
@@ -18,7 +18,15 @@ pub enum BackendState {
     Drm(drm::DrmBackend),
 }
 
-pub trait BackendInterface {}
+pub trait BackendInterface {
+    fn event_loop(&self) -> &LoopHandle<'static, Self>
+    where
+        Self: Sized;
+
+    fn dispatch(&mut self) {
+        todo!()
+    }
+}
 
 // turning stuff to dyn so we don't need to write implementation 3 times
 // Helper functions for converting memory references
@@ -49,6 +57,8 @@ impl BackendState {
     {
         f(self.as_mut_dyn())
     }
+
+
 }
 
 impl From<crate::MoyaBackend> for BackendState {

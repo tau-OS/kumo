@@ -75,7 +75,14 @@ impl MoyaX11 {
     }
 }
 
-impl super::BackendInterface for MoyaX11 {}
+impl super::BackendInterface for MoyaX11 {
+    fn event_loop(&self) -> &calloop::LoopHandle<'static, Self>
+        where
+            Self: Sized {
+        todo!()
+        
+    }
+}
 
 fn try_gbm_allocator(fd: std::os::fd::OwnedFd) -> Option<X11Allocator> {
     // Create the gbm device for buffer allocation.
