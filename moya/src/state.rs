@@ -15,7 +15,7 @@ use wayland_server::{
 // ref https://github.com/pop-os/cosmic-comp/blob/master/src/wayland/handlers/seat.rs
 
 use crate::MoyaBackend;
-
+// hello from tree
 #[derive(Debug)]
 pub struct XdgShellHandler {
     pub state: XdgShellState,
@@ -86,7 +86,7 @@ impl MoyaState {
                 crate::MoyaBackend::Udev => todo!(),
             },
             compositor: todo!("CompositorState::new(&display_handle)"),
-            // shm: ShmState::new(&display_handle, vec![]),
+            shm: ShmState::new(&display_handle, vec![]),
             data_device: DataDeviceState::new(&display_handle),
             xdg_shell: XdgShellHandler {
                 state: XdgShellState::new(&display_handle),
@@ -108,14 +108,16 @@ delegate_output!(MoyaState);
 //     }
 // }
 
-impl SeatHandler for MoyaState {
-    type KeyboardFocus = WlSurface;
+// todo: actually implement seat handler trait properly for real global dispatch bullshittery
 
-    type PointerFocus = WlSurface;
+// impl SeatHandler for MoyaState {
+//     type KeyboardFocus = WlSurface;
 
-    type TouchFocus = WlSurface;
+//     type PointerFocus = WlSurface;
 
-    fn seat_state(&mut self) -> &mut SeatState<Self> {
-        todo!()
-    }
-}
+//     type TouchFocus = WlSurface;
+
+//     fn seat_state(&mut self) -> &mut SeatState<Self> {
+//         todo!()
+//     }
+// }
