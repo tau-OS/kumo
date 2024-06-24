@@ -8,8 +8,7 @@ use smithay::{
 };
 use tracing::instrument;
 use wayland_server::{
-    backend::{ClientData, ClientId, DisconnectReason},
-    Display,
+    backend::{ClientData, ClientId, DisconnectReason}, protocol::wl_surface::WlSurface, Display
 };
 
 // ref https://github.com/pop-os/cosmic-comp/blob/master/src/state.rs
@@ -49,7 +48,6 @@ pub enum KeyboardFocusTarget {
 }
 
 
-
 impl From<crate::MoyaBackend> for MoyaState {
     fn from(value: crate::MoyaBackend) -> Self {
         Self {
@@ -73,7 +71,7 @@ impl From<crate::MoyaBackend> for MoyaState {
         }
     }
 }
-
+// todo: fix!
 impl MoyaState {
     pub fn new(display: &mut Display<Self>, backend: MoyaBackend) -> Self {
         let display_handle = display.handle();
@@ -88,7 +86,7 @@ impl MoyaState {
                 crate::MoyaBackend::Udev => todo!(),
             },
             compositor: todo!("CompositorState::new(&display_handle)"),
-            shm: ShmState::new(&display_handle, vec![]),
+            // shm: ShmState::new(&display_handle, vec![]),
             data_device: DataDeviceState::new(&display_handle),
             xdg_shell: XdgShellHandler {
                 state: XdgShellState::new(&display_handle),
@@ -110,15 +108,14 @@ delegate_output!(MoyaState);
 //     }
 // }
 
-/* impl SeatHandler for MoyaState {
-    type KeyboardFocus = KeyboardFocusTarget;
+impl SeatHandler for MoyaState {
+    type KeyboardFocus = WlSurface;
 
-    type PointerFocus;
+    type PointerFocus = WlSurface;
 
-    type TouchFocus;
+    type TouchFocus = WlSurface;
 
     fn seat_state(&mut self) -> &mut SeatState<Self> {
         todo!()
     }
 }
- */
