@@ -1,4 +1,4 @@
-use crate::widgets;
+use crate::widgets::{self, FleetWidgetList};
 use super::*;
 use glib::subclass::object::ObjectImpl;
 // use glib::ControlFlow::Continue;
@@ -15,6 +15,7 @@ pub struct Fleet {
     // pub time: Cell<chrono::DateTime<chrono::Local>>,
     #[template_child(id = "clockbox")]
     pub clock: TemplateChild<gtk::Box>,
+    pub widgets: FleetWidgetList,
 }
 
 #[glib::object_subclass]
@@ -35,17 +36,6 @@ impl ObjectSubclass for Fleet {
     }
 }
 
-// #[gtk::template_callbacks]
-// impl Fleet {
-//     #[template_callback]
-//     pub fn on_clock_tick(&self) {
-//         self.time.set(chrono::Local::now());
-//         let timestring = &self.time.get().format("%H:%M:%S").to_string();
-//         self.clock.set_width_chars(timestring.len() as i32 + 2);
-//         self.clock
-//             .set_text(timestring);
-//     }
-// }
 
 impl ObjectImpl for Fleet {
     fn dispose(&self) {
@@ -54,13 +44,17 @@ impl ObjectImpl for Fleet {
         }
     }
 
+    // todo: make configurable!
     fn constructed(&self) {
         self.parent_constructed();
 
-        let clock = widgets::clock::Clock::new();
+        
 
-        // don't set child, actually literally copy clock into the box
-        self.clock.append(&clock);
+        // todo: remove the clockbox and make clock just
+        // one of the widgets in the vec
+        self.clock.append(&widgets::clock::Clock::new());
+        // 
+        // self.widgets.add_widget(Box::new(widgets::clock::Clock::new()));
     }
 }
 impl WidgetImpl for Fleet {}

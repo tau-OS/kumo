@@ -1,3 +1,6 @@
+//! Fleet is the top panel of the shell.
+//! 
+//! It is a panel that can be used to display the time, date, and other information.
 mod imp;
 
 use glib::subclass::types::ObjectSubclass;
@@ -33,19 +36,6 @@ impl Fleet {
             obj.set_anchor(*edge, *state);
         }
 
-        // todo: replace with Clock widget
-        obj.connect_realize(|fleet| {
-            let args = fleet.clone();
-            glib::timeout_add_local(std::time::Duration::from_millis(500), move || {
-                args.tick_clock();
-                glib::ControlFlow::Continue
-            });
-        });
-
         obj
-    }
-
-    pub fn tick_clock(&self) {
-        // imp::Fleet::on_clock_tick(self::imp::Fleet::from_obj(self));
     }
 }

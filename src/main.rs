@@ -3,7 +3,7 @@ mod app;
 mod util;
 mod widgets;
 fn main() -> Result<()> {
-    dotenvy::dotenv()?;
+    dotenvy::dotenv().ok();
 
     color_eyre::install()?;
 

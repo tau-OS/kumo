@@ -41,9 +41,13 @@ impl ObjectImpl for Bar {
     fn constructed(&self) {
         self.parent_constructed();
 
+        // todo: proper impl of this
         self.appmenu.connect_clicked(|_| {
             let path = std::path::PathBuf::from("/usr/share/applications/firefox.desktop");
-            crate::util::gio_launch_desktop_file(&path).unwrap();
+            let _open = crate::util::gio_launch_desktop_file(&path).or_else(|e| {
+                tracing::error!("Error launching desktop file: {:?}", e);
+                Err(e)
+            });
         });
     }
 }

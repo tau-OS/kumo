@@ -1,8 +1,10 @@
 use std::time::Duration;
 
 use chrono::prelude::*;
-use glib::subclass::types::ObjectSubclassExt;
+use glib::{subclass::types::ObjectSubclassExt, Cast};
 use gtk::prelude::WidgetExt;
+
+use super::FleetWidget;
 mod imp;
 #[derive(Default)]
 pub enum TimeFormat {
@@ -68,5 +70,13 @@ impl Clock {
 
     pub fn tick(&self, format: &str) {
         imp::Clock::on_clock_tick(self.downcast(), format);
+    }
+}
+
+
+impl FleetWidget for Clock {
+    fn as_widget(&self) -> &gtk::Widget {
+        self.upcast_ref::<gtk::Widget>()
+        // self.clone().upcast::<gtk::Widget>()
     }
 }
