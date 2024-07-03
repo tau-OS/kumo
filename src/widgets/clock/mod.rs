@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use glib::{subclass::types::ObjectSubclassExt, Cast};
 use gtk::prelude::WidgetExt;
 
-use super::FleetWidget;
+use super::FleetWidgetTrait;
 mod imp;
 #[derive(Default)]
 pub enum TimeFormat {
@@ -16,7 +16,6 @@ pub enum TimeFormat {
 glib::wrapper! {
     pub struct Clock(ObjectSubclass<imp::Clock>) @extends gtk::Box, gtk::Widget;
 }
-
 
 impl TimeFormat {
     pub fn format_time(&self, time: DateTime<Local>) -> String {
@@ -73,8 +72,7 @@ impl Clock {
     }
 }
 
-
-impl FleetWidget for Clock {
+impl FleetWidgetTrait for Clock {
     fn as_widget(&self) -> &gtk::Widget {
         self.upcast_ref::<gtk::Widget>()
         // self.clone().upcast::<gtk::Widget>()

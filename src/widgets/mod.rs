@@ -3,8 +3,10 @@ use std::fmt::Debug;
 pub mod clock;
 pub mod fleet;
 pub mod bar;
+pub mod fleet_list;
 
-pub trait FleetWidget {
+#[deprecated = "Please make it a normal widget instead"]
+pub trait FleetWidgetTrait {
     fn as_widget(&self) -> &gtk::Widget;
     
     fn update(&mut self) {}
@@ -16,12 +18,13 @@ pub trait FleetWidget {
     }
 }
 
+#[deprecated = "Use the FleetWidgetList widget"]
 #[derive(Default)]
-pub struct FleetWidgetList {
-    widgets: Vec<Box<dyn FleetWidget>>,
+pub struct FleetWidgets {
+    widgets: Vec<Box<dyn FleetWidgetTrait>>,
 }
 
-impl Debug for FleetWidgetList {
+impl Debug for FleetWidgets {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FleetWidgetList")
             .field("widgets", &self.widgets.len())
@@ -29,14 +32,14 @@ impl Debug for FleetWidgetList {
     }
 }
 
-impl FleetWidgetList {
+impl FleetWidgets {
     pub fn new() -> Self {
         Self {
             widgets: Vec::new(),
         }
     }
 
-    pub fn add_widget(&mut self, widget: Box<dyn FleetWidget>) {
+    pub fn add_widget(&mut self, widget: Box<dyn FleetWidgetTrait>) {
         self.widgets.push(widget);
         self.sort();
     }
