@@ -33,6 +33,7 @@ gtk4-layer-shell = "0.2.0"
 libhelium = { version = "0.1.0", features = ["gtk_v4_10", "v1_6"] }
 chrono = { version = "0.4", features = ["serde"] }
 xdgkit = "3.2.5"
+appindicator3 = "0.3.0"
 
 [dependencies.gtk]
 version = "0.7.0"
