@@ -1,5 +1,5 @@
 use super::*;
-use crate::widgets::{self, fleet_list::FleetWidgetList};
+use fleet_list::FleetWidgetList;
 use glib::subclass::object::ObjectImpl;
 // use glib::ControlFlow::Continue;
 use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
@@ -13,8 +13,6 @@ pub struct Fleet {
     // #[template_child(id = "clock")]
     // pub clock: TemplateChild<gtk::Label>,
     // pub time: Cell<chrono::DateTime<chrono::Local>>,
-    #[template_child(id = "clockbox")]
-    pub clock: TemplateChild<gtk::Box>,
     pub widgets: FleetWidgetList,
 }
 
@@ -47,11 +45,10 @@ impl ObjectImpl for Fleet {
     fn constructed(&self) {
         self.parent_constructed();
 
-        // todo: remove the clockbox and make clock just
-        // one of the widgets in the vec
-        self.clock.append(&widgets::clock::Clock::new());
-        //
-        // self.widgets.add_widget(Box::new(widgets::clock::Clock::new()));
+        self.widgets.append(&clock::Clock::new());
+
+        // we should clean this up and put it inside the blueprint
+        self.gtkbox.append(self.widgets.as_box());
     }
 }
 impl WidgetImpl for Fleet {}

@@ -10,7 +10,7 @@ use gtk::TemplateChild;
 use super::TimeFormat;
 
 #[derive(Debug, Default, gtk::CompositeTemplate)]
-#[template(file = "src/widgets/clock/clock.blp")]
+#[template(file = "src/widgets/fleet/clock/clock.blp")]
 pub struct Clock {
     #[template_child(id = "time")]
     pub clock_label: TemplateChild<gtk::Label>,

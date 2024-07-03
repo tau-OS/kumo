@@ -1,7 +1,10 @@
 //! Fleet is the top panel of the shell.
-//! 
+//!
 //! It is a panel that can be used to display the time, date, and other information.
 mod imp;
+pub mod fleet_list;
+pub mod clock;
+pub mod tray;
 
 use glib::subclass::types::ObjectSubclass;
 use gtk::TemplateChild;

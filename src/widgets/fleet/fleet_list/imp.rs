@@ -1,7 +1,6 @@
 use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
 use gtk::subclass::{box_::BoxImpl, widget::WidgetImpl};
 
-
 pub struct FleetWidgetList {
     pub box_: gtk::Box,
 }

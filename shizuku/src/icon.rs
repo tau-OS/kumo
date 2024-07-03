@@ -3,6 +3,8 @@ use zvariant::Value;
 // (iiibiiay)
 // width, height, rowstride, has alpha, bits per sample, channels, image data
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
+// channel data is unused for now
 pub struct ImageData(i32, i32, i32, bool, i32, i32, Vec<u8>);
 
 impl From<&ImageData> for gtk::gdk_pixbuf::Pixbuf {

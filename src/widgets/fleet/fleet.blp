@@ -37,25 +37,13 @@ template $Fleet : He.ApplicationWindow {
             // halign: center;
             orientation: horizontal;
             spacing: 10;
-            Button {
-                
-                styles ["flat"]
-                label: "Fleet";
-                icon-name: "view-app-grid-symbolic";
-            }
-
-
-            Button {
-                styles ["flat"]
-                label: "Fleet";
-                icon-name: "view-app-grid-symbolic";
-            }
+            height-request: 25;
 
 
             // margin-start: 20;
             // test clock
             [end]
-            Box clockbox {
+            Box widgetlist {
                 orientation: horizontal;
                 spacing: 5;
                 // margin-start: 20;
