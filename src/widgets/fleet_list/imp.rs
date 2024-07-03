@@ -1,4 +1,5 @@
-use glib::subclass::types::ObjectSubclass;
+use glib::subclass::{object::ObjectImpl, types::ObjectSubclass};
+use gtk::subclass::{box_::BoxImpl, widget::WidgetImpl};
 
 
 pub struct FleetWidgetList {
@@ -17,3 +18,9 @@ impl ObjectSubclass for FleetWidgetList {
         }
     }
 }
+
+impl BoxImpl for FleetWidgetList {}
+impl WidgetImpl for FleetWidgetList {}
+impl ObjectImpl for FleetWidgetList {}
+
+

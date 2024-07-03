@@ -1,5 +1,5 @@
 use super::*;
-use crate::widgets::{self, FleetWidgets};
+use crate::widgets::{self, fleet_list::FleetWidgetList};
 use glib::subclass::object::ObjectImpl;
 // use glib::ControlFlow::Continue;
 use gtk::subclass::widget::{CompositeTemplateClass, WidgetImpl};
@@ -15,7 +15,7 @@ pub struct Fleet {
     // pub time: Cell<chrono::DateTime<chrono::Local>>,
     #[template_child(id = "clockbox")]
     pub clock: TemplateChild<gtk::Box>,
-    pub widgets: FleetWidgets,
+    pub widgets: FleetWidgetList,
 }
 
 #[glib::object_subclass]

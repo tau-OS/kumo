@@ -16,10 +16,11 @@ impl Default for FleetWidgetList {
 
 impl FleetWidgetList {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create FleetWidgetList")
+        let obj: Self = glib::Object::new();
+        obj
     }
 
-    pub fn add_widget(&self, widget: &gtk::Widget) {
-        self.append(widget);
-    }
+    // pub fn add_widget(&self, widget: &gtk::Widget) {
+    //     self.append(widget);
+    // }
 }
