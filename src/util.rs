@@ -14,12 +14,24 @@ pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
 
     // let file = gio::File::for_path(file);
     // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
-    appinfo.launch_uris(&[], Some(&launch_ctx))?;
+    // appinfo.launch_uris(&[], Some(&launch_ctx))?;
 
     //todo: use systemd-run for this
+    // https://systemd.io/DESKTOP_ENVIRONMENTS/
 
-    
-    
+    use std::process::Command;
+
+    let status = Command::new("systemd-run")
+        .arg("--user")
+        .arg("--slice=app.slice")
+        .arg("--no-block")
+        .arg(appinfo.executable())
+        .status()?;
+
+    // if !status.success() {
+    //     return Err(color_eyre::eyre::eyre!("systemd-run failed with status: {}", status));
+    // }
+
     Ok(())
 }
 
