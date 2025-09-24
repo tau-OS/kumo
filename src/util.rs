@@ -16,17 +16,10 @@ pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
 
-    // // // todo: fix above, comment below
-    // std::process::Command::new("gio")
-    //     .arg("launch")
-    //     .arg("aaa")
-    //     .output()?;
+    //todo: use systemd-run for this
 
-    // We don't wait for the process to finish, detach it
-
-    // hdl.
-
-    // wait infinitely
+    
+    
     Ok(())
 }
 

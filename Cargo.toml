@@ -27,20 +27,27 @@ tracing-subscriber = { version = "0.3", features = [
     "serde_json",
     "tracing-serde",
 ] }
-gio = "0.18.4"
-glib = { version = "0.18.5", features = ["v2_78"] }
-gtk4-layer-shell = "0.2.0"
-libhelium = { version = "0.1.0", features = ["gtk_v4_10", "v1_6"] }
 chrono = { version = "0.4", features = ["serde"] }
 xdgkit = "3.2.5"
-appindicator3 = "0.3.0"
-
-[dependencies.gtk]
-version = "0.7.0"
-package = "gtk4"
-features = ["v4_10", "blueprint"]
-
+# appindicator3 = "0.3.0"
+libhelium = { workspace = true }
+gtk = { workspace = true }
+gio = { workspace = true }
+glib = { workspace = true }
+gtk4-layer-shell = { workspace = true }
 
 
 [workspace]
 members = ["shizuku", "wayland-wf-shell"]
+
+[workspace.dependencies]
+gio = "0"
+glib = { version = "0.21", features = ["v2_80"] }
+gtk4-layer-shell = "^0.5"
+libhelium = { version = "0.12.0", features = ["gtk_v4_8", "v1_8"] }
+
+
+[workspace.dependencies.gtk]
+version = "^0.9"
+package = "gtk4"
+features = ["v4_8", "blueprint"]

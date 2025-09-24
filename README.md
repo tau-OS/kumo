@@ -6,3 +6,15 @@ The Kumo Shell is part of the tauOS project, and part of the KIRI Desktop Enviro
 
 > [!NOTE]
 > This code is still in development and is not ready for use.
+
+## Building
+
+### Prerequisites
+
+```
+gtk4-devel
+gtk4-layer-shell-devel
+wayland-devel
+wayland-protocols-devel
+gio-devel
+```

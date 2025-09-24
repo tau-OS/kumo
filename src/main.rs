@@ -1,7 +1,6 @@
 use color_eyre::Result;
 mod app;
 mod util;
-mod widgets;
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
@@ -14,8 +13,8 @@ fn main() -> Result<()> {
         ))
         .init();
 
-    // let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
-    // util::gio_launch_desktop_file(&file).unwrap();
+    let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
+    util::gio_launch_desktop_file(&file).unwrap();
 
     let app = app::Application::new();
     app.run();
