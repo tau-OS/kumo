@@ -1,4 +1,7 @@
+use std::process::Command;
+
 use color_eyre::Result;
+use fork::Fork;
 mod app;
 mod util;
 fn main() -> Result<()> {
@@ -13,12 +16,11 @@ fn main() -> Result<()> {
         ))
         .init();
 
-    let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
-    let a = util::systemd_launch(&file).unwrap();
-    println!("a: {:?}", a);
+    // let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
+    // let a = util::gio_launch_desktop_file(&file).unwrap();
+    // 
+    // println!("a: {:?}", a);
 
-    let app = app::Application::new();
-    app.run();
-
+    util::launch_desktop("btop").unwrap();
     Ok(())
 }
