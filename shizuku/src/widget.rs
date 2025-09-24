@@ -1,5 +1,5 @@
 use crate::dbus::Urgency;
-use glib::Cast;
+use glib::object::Cast;
 use gtk::prelude::{BoxExt, ButtonExt, GtkWindowExt, WidgetExt};
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use tracing::{debug, warn};
@@ -83,7 +83,7 @@ impl Notification {
             .build();
         window.init_layer_shell();
         window.set_layer(Layer::Overlay);
-        window.set_namespace("notification");
+        window.set_namespace(Some("notification"));
 
         // force window size to be 400x100 no matter what
 
@@ -139,7 +139,7 @@ impl Notification {
                 if std::path::PathBuf::from(icon).is_file() {
                     gimg.set_from_file(Some(icon));
                 } else {
-                    gimg.set_from_icon_name(Some(icon));
+                    gimg.set_icon_name(Some(icon));
                 }
             } else {
                 gimg.set_margin_end(0);
