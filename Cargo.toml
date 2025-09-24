@@ -35,6 +35,8 @@ gtk = { workspace = true }
 gio = { workspace = true }
 glib = { workspace = true }
 gtk4-layer-shell = { workspace = true }
+zbus_systemd = { version = "0.25701.0", features = ["hostname1", "login1", "systemd1", "timedate1"] }
+ulid = "1.2.1"
 
 
 [workspace]

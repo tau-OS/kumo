@@ -14,7 +14,8 @@ fn main() -> Result<()> {
         .init();
 
     let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
-    util::gio_launch_desktop_file(&file).unwrap();
+    let a = util::systemd_launch(&file).unwrap();
+    println!("a: {:?}", a);
 
     let app = app::Application::new();
     app.run();
