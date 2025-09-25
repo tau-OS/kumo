@@ -1,20 +1,12 @@
 use color_eyre::{eyre::OptionExt, Result};
-use fork::{fork, Fork};
 use gio::{
     prelude::{AppInfoExt, AppLaunchContextExt},
-    DesktopAppInfo,
+    AppInfo, AppLaunchContext,
 };
-use glib::{variant::ToVariant, Pid, Variant, VariantDict};
-use gtk::gio::AppInfo;
+use glib::{Variant, VariantDict};
 use serde::{Deserialize, Serialize};
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-    sync::{Arc, Mutex, RwLock},
-    thread,
-    time::Duration,
-};
-use zbus::zvariant::{OwnedObjectPath, OwnedValue, Value};
+use std::path::{Path, PathBuf};
+use zbus::zvariant::{OwnedObjectPath, Value};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemdRunResult {
     unit: String,
@@ -44,15 +36,16 @@ pub async fn adopt_scope(
     pid: u32,
     unit_id: &str,
 ) -> Result<OwnedObjectPath> {
-    let mut pid_array = zbus::zvariant::Array::new(&zbus::zvariant::Signature::U32);
-    pid_array.append(Value::U32(pid))?;
-    // manager.exit();
     let res = manager
         .start_transient_unit(
             unit_id.into(),
             "replace".into(),
             vec![
-                ("PIDs".into(), pid_array.try_into()?),
+                ("PIDs".into(), {
+                    let mut pid_array = zbus::zvariant::Array::new(&zbus::zvariant::Signature::U32);
+                    pid_array.append(Value::U32(pid))?;
+                    pid_array.try_into()?
+                }),
                 (
                     "CollectMode".into(),
                     Value::Str("inactive-or-failed".into()).try_into()?,
@@ -73,6 +66,35 @@ pub fn appid_from_desktop(path: &str) -> Option<String> {
 pub fn systemd_unit_name(appid: &str) -> String {
     let id = ulid::Ulid::new();
     format!("app-{appid}-{id}")
+}
+
+// Launch context hook for adopting application into systemd scope
+fn hook_launched_scope(ctx: &AppLaunchContext, appinfo: &AppInfo, properties: &Variant) {
+    // println!("App launched: {:?}", appinfo.name());
+    println!("Context: {:?}", ctx);
+    println!("V: {:?}", properties);
+    let pid: Option<i32> = {
+        let vdict: VariantDict = properties.get().unwrap();
+        vdict.lookup("pid").ok().flatten()
+    };
+
+    let appid = appinfo.id().unwrap_or_default();
+    // println!("pid: {:?}", pid);
+
+    if let Some(pid) = pid {
+        glib::spawn_future_local(async move {
+            // Your async adoption function
+            let connection = zbus::Connection::session().await?;
+            let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
+            let appid_owned = appid.clone();
+            let appid = appid_from_desktop(&appid_owned).ok_or_eyre("Could not get appid")?;
+            let unit = format!("{}.scope", systemd_unit_name(&appid));
+
+            let _objp = adopt_scope(&manager, pid.try_into()?, &unit).await?;
+
+            Ok::<(), color_eyre::Report>(())
+        });
+    }
 }
 
 /// `gio launch` a desktop file, which will open the selected application,
@@ -109,52 +131,18 @@ pub fn systemd_launch(file: &PathBuf) -> Result<SystemdRunResult> {
     Ok(serde_json::from_str(&String::from_utf8_lossy(&out.stdout))?)
 }
 
-// todo: Figure out how to manage processes and stuff for this
-// maybe also automatically move stuff to app.slice
 pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     let appinfo =
         gio::DesktopAppInfo::from_filename(file.to_str().ok_or_eyre("Invalid desktop file path")?)
             .ok_or_eyre("Invalid desktop file")?;
 
-    let file = file.clone();
     let launch_ctx = gio::AppLaunchContext::default();
-    // let file = gio::File::for_path(file);
-    // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
-    launch_ctx.connect_launched(move |ctx, _appinfo, v| {
-        // println!("App launched: {:?}", appinfo.name());
-        println!("Context: {:?}", ctx);
-        println!("V: {:?}", v);
-        let pid: Option<i32> = {
-            let vdict: VariantDict = v.get().unwrap();
-            vdict.lookup("pid").ok().flatten()
-        };
-        // println!("pid: {:?}", pid);
-
-        if let Some(pid) = pid {
-            // todo: Don't actually do this lol
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(async {
-                    // Your async adoption function
-                    let connection = zbus::Connection::session().await?;
-                    let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
-                    let appid = appid_from_desktop(file.to_str().unwrap())
-                        .ok_or_eyre("Could not get appid")?;
-                    let unit = format!("{}.scope", systemd_unit_name(&appid));
-
-                    let _objp = adopt_scope(&manager, pid.try_into()?, &unit).await?;
-
-                    Ok::<(), color_eyre::Report>(())
-                })
-                .expect("Adoption failed in child process");
-        }
-    });
+    launch_ctx.connect_launched(hook_launched_scope);
 
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
     Ok(())
 }
+
 pub fn launch_desktop(app: &str) -> Result<()> {
     let launch_ctx = gio::AppLaunchContext::new();
 
@@ -169,39 +157,7 @@ pub fn launch_desktop(app: &str) -> Result<()> {
 
     let appinfo = gio::DesktopAppInfo::new(&app).ok_or_eyre("No such app")?;
     // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
-    launch_ctx.connect_launched(move |ctx, appinfo, v| {
-        // println!("App launched: {:?}", appinfo.name());
-        println!("Context: {:?}", ctx);
-        println!("V: {:?}", v);
-        let pid: Option<i32> = {
-            let vdict: VariantDict = v.get().unwrap();
-            vdict.lookup("pid").ok().flatten()
-        };
-
-        let appid = appinfo.id().unwrap_or_default();
-        // println!("pid: {:?}", pid);
-
-        if let Some(pid) = pid {
-            // todo: Don't actually do this lol
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(async {
-                    // Your async adoption function
-                    let connection = zbus::Connection::session().await?;
-                    let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
-                    let appid_owned = appid.clone();
-                    let appid = appid_from_desktop(&appid_owned).ok_or_eyre("Could not get appid")?;
-                    let unit = format!("{}.scope", systemd_unit_name(&appid));
-
-                    let _objp = adopt_scope(&manager, pid.try_into()?, &unit).await?;
-
-                    Ok::<(), color_eyre::Report>(())
-                })
-                .expect("Adoption failed in child process");
-        }
-    });
+    launch_ctx.connect_launched(hook_launched_scope);
 
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
     Ok(())
