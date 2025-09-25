@@ -1,16 +1,11 @@
 use async_channel;
-use color_eyre::{eyre::OptionExt, Result};
 use gio::prelude::{AppInfoExt, AppLaunchContextExt};
 use glib::VariantDict;
-use serde::{Deserialize, Serialize};
+use stable_eyre::{eyre::OptionExt, Result};
 use std::path::{Path, PathBuf};
 use zbus::zvariant::{OwnedObjectPath, Value};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SystemdRunResult {
-    unit: String,
-    invocation_id: Option<String>,
-}
+use crate::runtime;
 
 // The mode needs to be one of "replace", "fail", "isolate",
 // "ignore-dependencies", or "ignore-requirements". If "replace", the method
@@ -56,6 +51,37 @@ pub async fn adopt_scope(
     Ok(res)
 }
 
+pub async fn launch_transient_service(
+    manager: &zbus_systemd::systemd1::ManagerProxy<'_>,
+    unit_name: &str,
+    // Optional slice
+    slice: Option<&str>,
+    extra_opts: Option<&[(&str, &str)]>,
+) -> Result<OwnedObjectPath> {
+    let mut properties = Vec::new();
+    if let Some(slice) = slice {
+        properties.push(("Slice".into(), Value::Str(slice.into()).try_into()?));
+    }
+
+    if let Some(extra_opts) = extra_opts {
+        properties.extend(extra_opts.iter().map(|(key, value)| {
+            (
+                key.to_string().into(),
+                Value::Str(value.to_string().into()).try_into().unwrap(),
+            )
+        }));
+    }
+
+    Ok(manager
+        .start_transient_unit(
+            unit_name.to_owned(),
+            "replace".into(),
+            properties,
+            Vec::new(),
+        )
+        .await?)
+}
+
 pub fn appid_from_desktop(path: &str) -> Option<String> {
     let path = Path::new(path);
     path.file_stem().map(|s| s.to_string_lossy().to_string())
@@ -66,40 +92,6 @@ pub fn systemd_unit_name(appid: &str) -> String {
     format!("app-{appid}-{id}")
 }
 
-/// `gio launch` a desktop file, which will open the selected application,
-// todo: We should probably not rely on the `gio` CLI, but use AppInfo directly.
-// help needed here
-pub fn systemd_launch(file: &PathBuf) -> Result<SystemdRunResult> {
-    let appinfo =
-        gio::DesktopAppInfo::from_filename(file.to_str().ok_or_eyre("Invalid desktop file path")?)
-            .ok_or_eyre("Invalid desktop file")?;
-
-    use std::process::Command;
-    let appid = appid_from_desktop(file.to_str().ok_or_eyre("Invalid desktop file path")?)
-        .ok_or_eyre("Could not get appid from desktop file")?;
-    let unit = systemd_unit_name(&appid);
-    println!("Unit: {}", unit);
-
-    let out = Command::new("systemd-run")
-        .arg("--user")
-        .arg("-G")
-        .arg("--slice=app.slice")
-        .arg("--json=pretty")
-        .arg("--unit")
-        .arg(unit)
-        .arg(appinfo.executable())
-        .output()?;
-
-    if !out.status.success() {
-        return Err(color_eyre::eyre::eyre!(
-            "systemd-run failed with status: {}",
-            out.status
-        ));
-    }
-
-    Ok(serde_json::from_str(&String::from_utf8_lossy(&out.stdout))?)
-}
-
 #[derive(Debug)]
 struct AdoptionRequest {
     pid: i32,
@@ -107,6 +99,7 @@ struct AdoptionRequest {
 }
 
 // New common function for adopting launched PIDs to systemd scopes
+// todo: use global session for this
 async fn adopt_launched_pid_to_systemd_scope(pid: i32, app_identifier: String) -> Result<()> {
     let connection = zbus::Connection::session().await?;
     let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
@@ -129,7 +122,7 @@ pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     let (sender, receiver) = async_channel::unbounded::<AdoptionRequest>();
 
     // Set up the async handler for adoption requests
-    glib::spawn_future_local(async move {
+    runtime().spawn(async move {
         while let Ok(request) = receiver.recv().await {
             println!(
                 "Processing adoption request for PID {} with app_id {}",
@@ -193,7 +186,8 @@ pub fn launch_desktop(app: &str) -> Result<()> {
     let (sender, receiver) = async_channel::unbounded::<AdoptionRequest>();
 
     // Set up the async handler for adoption requests
-    glib::spawn_future_local(async move {
+    runtime().spawn(async move {
+        tracing::info!("Spawning adoption thread");
         while let Ok(request) = receiver.recv().await {
             println!(
                 "Processing adoption request for PID {} with app_id {}",

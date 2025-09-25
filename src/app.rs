@@ -1,12 +1,20 @@
 use gio::prelude::*;
+use glib::clone;
 use gtk::prelude::*;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use stable_eyre::eyre::{eyre, Result};
+
+use crate::runtime;
+
+// use crate::runtime;
+
 // todo: Maybe use D-Bus to talk through different components? Instead of using mpsc?
 
 const APP_ID: &str = "com.fyralabs.KiriShell";
 
 pub struct Application {
     pub app: libhelium::Application,
+    pub dbus_session: zbus::Connection,
 }
 
 pub fn fleet_bar(app: &libhelium::Application) -> libhelium::ApplicationWindow {
@@ -21,10 +29,10 @@ pub fn fleet_bar(app: &libhelium::Application) -> libhelium::ApplicationWindow {
         .can_focus(false)
         // .opacity(0.85)
         .build();
+    fleet_bar.init_layer_shell();
     fleet_bar.remove_css_class("csd");
     fleet_bar.set_maximized(false);
     fleet_bar.set_exclusive_zone(50);
-    fleet_bar.init_layer_shell();
     fleet_bar.set_layer(Layer::Top);
     fleet_bar.auto_exclusive_zone_enable();
     fleet_bar.set_anchor(Edge::Bottom, true);
@@ -57,8 +65,9 @@ pub fn fleet_bar(app: &libhelium::Application) -> libhelium::ApplicationWindow {
 }
 
 impl Application {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let app = libhelium::Application::new(Some(APP_ID), Default::default());
+        let (tx, rx) = async_channel::unbounded();
 
         // placeholder window
         app.connect_activate(|app| {
@@ -78,7 +87,21 @@ impl Application {
             // bar.present();
         });
 
-        Application { app }
+        runtime().spawn(clone!(
+            #[strong]
+            tx,
+            async move {
+                let conn = zbus::Connection::session().await.unwrap();
+                tx.send(conn).await.unwrap();
+                println!("hello")
+            }
+        ));
+        let bus = rx.recv_blocking()?;
+
+        Ok(Application {
+            app,
+            dbus_session: bus,
+        })
     }
 
     pub fn run(&self) {

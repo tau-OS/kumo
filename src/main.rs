@@ -1,10 +1,19 @@
-use color_eyre::Result;
+use std::sync::OnceLock;
+
+use stable_eyre::eyre::Result;
+use tokio::runtime::Runtime;
 mod app;
+mod components;
 mod util;
+#[must_use]
+fn runtime() -> &'static Runtime {
+    static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+    RUNTIME.get_or_init(|| Runtime::new().expect("Setting up tokio runtime needs to succeed."))
+}
+
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
-
-    color_eyre::install()?;
+    stable_eyre::install()?;
 
     // set envar for log to KUMO_LOG inst6ead of RUST_LOG
     tracing_subscriber::fmt()
@@ -19,7 +28,7 @@ fn main() -> Result<()> {
 
     // util::launch_desktop("btop").unwrap();
 
-    let app = app::Application::new();
+    let app = app::Application::new()?;
     app.run();
     Ok(())
 }

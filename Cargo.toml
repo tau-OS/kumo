@@ -12,7 +12,6 @@ lto = true
 
 [dependencies]
 clap = { version = "4.4", features = ["derive", "env"] }
-color-eyre = "0.6"
 dotenvy = { version = "0.15", features = ["clap"] }
 lazy_static = "1.4"
 once_cell = "1.19"
@@ -32,27 +31,33 @@ xdgkit = "3.2.5"
 # appindicator3 = "0.3.0"
 libhelium = { workspace = true }
 gtk = { workspace = true }
+relm4 = { workspace = true }
 gio = { workspace = true }
 glib = { workspace = true }
 gtk4-layer-shell = { workspace = true }
 zbus_systemd = { version = "0.25701.0", features = ["hostname1", "login1", "systemd1", "timedate1"] }
 ulid = "1.2.1"
-zbus = "5.11.0"
+zbus = { version = "^5.11", features = ["async-io"] }
 fork = "0.2.0"
 async-channel = "2.5.0"
+stable-eyre = "0.2.2"
+ashpd = { version = "^0.11", features = ["gtk4", "wayland"] }
+tokio = "1.47.1"
+zvariant = { version = "^5.7" }
 
 
 [workspace]
 members = ["shizuku", "wayland-wf-shell"]
 
 [workspace.dependencies]
+relm4 = { version = "*", features = ["macros"] }
 gio = "0.20"
 glib = { version = "0.20", features = ["v2_80"] }
 gtk4-layer-shell = "^0.5"
-libhelium = { version = "0.12.0", features = ["gtk_v4_8", "v1_8"] }
+libhelium = { version = "0.12.0", features = ["gtk_v4_12", "v1_8"] }
 
 
 [workspace.dependencies.gtk]
 version = "^0.9"
 package = "gtk4"
-features = ["v4_8", "blueprint"]
+features = ["v4_12", "blueprint"]
