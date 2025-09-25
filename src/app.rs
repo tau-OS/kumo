@@ -29,6 +29,14 @@ impl Application {
     }
 
     pub fn run(&self) {
+        let _hold = self.app.hold();
         self.app.run();
     }
 }
+
+// let all = gio::AppInfo::all();
+// let all_appnames: Vec<String> = all
+//     .iter()
+//     .map(|info| info.id().unwrap_or_default().to_string())
+//     .collect();
+// println!("all: {:#?}", all_appnames);

@@ -1,4 +1,5 @@
 use color_eyre::Result;
+use gio::prelude::AppInfoExt;
 mod app;
 mod util;
 fn main() -> Result<()> {
@@ -18,6 +19,10 @@ fn main() -> Result<()> {
     //
     // println!("a: {:?}", a);
 
-    util::launch_desktop("btop").unwrap();
+
+    // util::launch_desktop("btop").unwrap();
+
+    // let app = app::Application::new();
+    // app.run();
     Ok(())
 }

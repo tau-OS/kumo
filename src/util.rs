@@ -1,12 +1,11 @@
+use async_channel;
 use color_eyre::{eyre::OptionExt, Result};
-use gio::{
-    prelude::{AppInfoExt, AppLaunchContextExt},
-    AppInfo, AppLaunchContext,
-};
-use glib::{Variant, VariantDict};
+use gio::prelude::{AppInfoExt, AppLaunchContextExt};
+use glib::VariantDict;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use zbus::zvariant::{OwnedObjectPath, Value};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemdRunResult {
     unit: String,
@@ -36,16 +35,15 @@ pub async fn adopt_scope(
     pid: u32,
     unit_id: &str,
 ) -> Result<OwnedObjectPath> {
+    let mut pid_array = zbus::zvariant::Array::new(&zbus::zvariant::Signature::U32);
+    pid_array.append(Value::U32(pid))?;
+    // manager.exit();
     let res = manager
         .start_transient_unit(
             unit_id.into(),
             "replace".into(),
             vec![
-                ("PIDs".into(), {
-                    let mut pid_array = zbus::zvariant::Array::new(&zbus::zvariant::Signature::U32);
-                    pid_array.append(Value::U32(pid))?;
-                    pid_array.try_into()?
-                }),
+                ("PIDs".into(), pid_array.try_into()?),
                 (
                     "CollectMode".into(),
                     Value::Str("inactive-or-failed".into()).try_into()?,
@@ -66,35 +64,6 @@ pub fn appid_from_desktop(path: &str) -> Option<String> {
 pub fn systemd_unit_name(appid: &str) -> String {
     let id = ulid::Ulid::new();
     format!("app-{appid}-{id}")
-}
-
-// Launch context hook for adopting application into systemd scope
-fn hook_launched_scope(ctx: &AppLaunchContext, appinfo: &AppInfo, properties: &Variant) {
-    // println!("App launched: {:?}", appinfo.name());
-    println!("Context: {:?}", ctx);
-    println!("V: {:?}", properties);
-    let pid: Option<i32> = {
-        let vdict: VariantDict = properties.get().unwrap();
-        vdict.lookup("pid").ok().flatten()
-    };
-
-    let appid = appinfo.id().unwrap_or_default();
-    // println!("pid: {:?}", pid);
-
-    if let Some(pid) = pid {
-        glib::spawn_future_local(async move {
-            // Your async adoption function
-            let connection = zbus::Connection::session().await?;
-            let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
-            let appid_owned = appid.clone();
-            let appid = appid_from_desktop(&appid_owned).ok_or_eyre("Could not get appid")?;
-            let unit = format!("{}.scope", systemd_unit_name(&appid));
-
-            let _objp = adopt_scope(&manager, pid.try_into()?, &unit).await?;
-
-            Ok::<(), color_eyre::Report>(())
-        });
-    }
 }
 
 /// `gio launch` a desktop file, which will open the selected application,
@@ -131,13 +100,76 @@ pub fn systemd_launch(file: &PathBuf) -> Result<SystemdRunResult> {
     Ok(serde_json::from_str(&String::from_utf8_lossy(&out.stdout))?)
 }
 
+#[derive(Debug)]
+struct AdoptionRequest {
+    pid: i32,
+    app_identifier: String,
+}
+
+// New common function for adopting launched PIDs to systemd scopes
+async fn adopt_launched_pid_to_systemd_scope(pid: i32, app_identifier: String) -> Result<()> {
+    let connection = zbus::Connection::session().await?;
+    let manager = zbus_systemd::systemd1::ManagerProxy::new(&connection).await?;
+    let unit = format!("{}.scope", systemd_unit_name(&app_identifier));
+
+    let _objp = adopt_scope(&manager, pid.try_into()?, &unit).await?;
+    println!("Successfully adopted PID {} to unit {}", pid, unit);
+
+    Ok(())
+}
+
+// todo: Figure out how to manage processes and stuff for this
+// maybe also automatically move stuff to app.slice
 pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     let appinfo =
         gio::DesktopAppInfo::from_filename(file.to_str().ok_or_eyre("Invalid desktop file path")?)
             .ok_or_eyre("Invalid desktop file")?;
 
+    // Create channel for systemd adoption requests
+    let (sender, receiver) = async_channel::unbounded::<AdoptionRequest>();
+
+    // Set up the async handler for adoption requests
+    glib::spawn_future_local(async move {
+        while let Ok(request) = receiver.recv().await {
+            println!(
+                "Processing adoption request for PID {} with app_id {}",
+                request.pid, request.app_identifier
+            );
+
+            if let Err(e) =
+                adopt_launched_pid_to_systemd_scope(request.pid, request.app_identifier).await
+            {
+                eprintln!("Failed to adopt PID to systemd scope: {}", e);
+            }
+        }
+    });
+
+    let file = file.clone();
     let launch_ctx = gio::AppLaunchContext::default();
-    launch_ctx.connect_launched(hook_launched_scope);
+    launch_ctx.connect_launched(move |ctx, _appinfo, v| {
+        println!("Context: {:?}", ctx);
+        println!("V: {:?}", v);
+        let pid: Option<i32> = {
+            let vdict: VariantDict = v.get().unwrap();
+            vdict.lookup("pid").ok().flatten()
+        };
+
+        if let Some(pid) = pid {
+            if let Some(appid) = appid_from_desktop(file.to_str().unwrap()) {
+                let request = AdoptionRequest {
+                    pid,
+                    app_identifier: appid,
+                };
+
+                // Send adoption request through channel
+                if let Err(e) = sender.try_send(request) {
+                    eprintln!("Failed to send adoption request: {}", e);
+                }
+            } else {
+                eprintln!("Could not get appid from desktop file");
+            }
+        }
+    });
 
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
     Ok(())
@@ -156,8 +188,52 @@ pub fn launch_desktop(app: &str) -> Result<()> {
     };
 
     let appinfo = gio::DesktopAppInfo::new(&app).ok_or_eyre("No such app")?;
-    // let pathstr = file.to_str().ok_or_eyre("Invalid desktop file path")?;
-    launch_ctx.connect_launched(hook_launched_scope);
+
+    // Create channel for systemd adoption requests
+    let (sender, receiver) = async_channel::unbounded::<AdoptionRequest>();
+
+    // Set up the async handler for adoption requests
+    glib::spawn_future_local(async move {
+        while let Ok(request) = receiver.recv().await {
+            println!(
+                "Processing adoption request for PID {} with app_id {}",
+                request.pid, request.app_identifier
+            );
+
+            if let Err(e) =
+                adopt_launched_pid_to_systemd_scope(request.pid, request.app_identifier).await
+            {
+                eprintln!("Failed to adopt PID to systemd scope: {}", e);
+            }
+        }
+    });
+
+    launch_ctx.connect_launched(move |ctx, appinfo, v| {
+        // println!("App launched: {:?}", appinfo.name());
+        println!("Context: {:?}", ctx);
+        println!("V: {:?}", v);
+        let pid: Option<i32> = {
+            let vdict: VariantDict = v.get().unwrap();
+            vdict.lookup("pid").ok().flatten()
+        };
+
+        if let Some(pid) = pid {
+            let appid = appinfo.id().unwrap_or_default();
+            if let Some(appid_clean) = appid_from_desktop(&appid) {
+                let request = AdoptionRequest {
+                    pid,
+                    app_identifier: appid_clean,
+                };
+
+                // Send adoption request through channel
+                if let Err(e) = sender.try_send(request) {
+                    eprintln!("Failed to send adoption request: {}", e);
+                }
+            } else {
+                eprintln!("Could not get appid from '{}'", appid);
+            }
+        }
+    });
 
     appinfo.launch_uris(&[], Some(&launch_ctx))?;
     Ok(())
