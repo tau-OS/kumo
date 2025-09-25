@@ -1,5 +1,4 @@
 use color_eyre::Result;
-use gio::prelude::AppInfoExt;
 mod app;
 mod util;
 fn main() -> Result<()> {
@@ -13,12 +12,10 @@ fn main() -> Result<()> {
             std::env::var("KUMO_LOG").unwrap_or_else(|_| "info".to_string()),
         ))
         .init();
-
     // let file = std::path::PathBuf::from("/usr/share/applications/Alacritty.desktop");
     // let a = util::gio_launch_desktop_file(&file).unwrap();
     //
     // println!("a: {:?}", a);
-
 
     // util::launch_desktop("btop").unwrap();
 
