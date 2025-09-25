@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     // util::launch_desktop("btop").unwrap();
 
-    // let app = app::Application::new();
-    // app.run();
+    let app = app::Application::new();
+    app.run();
     Ok(())
 }
