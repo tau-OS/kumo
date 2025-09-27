@@ -32,6 +32,7 @@ xdgkit = "3.2.5"
 libhelium = { workspace = true }
 gtk = { workspace = true }
 relm4 = { workspace = true }
+kurage = { workspace = true }
 gio = { workspace = true }
 glib = { workspace = true }
 gtk4-layer-shell = { workspace = true }
@@ -55,6 +56,7 @@ gio = "0.20"
 glib = { version = "0.20", features = ["v2_80"] }
 gtk4-layer-shell = "^0.5"
 libhelium = { version = "0.12.0", features = ["gtk_v4_12", "v1_8"] }
+kurage = { git = "https://github.com/FyraLabs/kurage.git", rev = "40f622c" }
 
 
 [workspace.dependencies.gtk]

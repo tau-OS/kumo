@@ -4,7 +4,7 @@ use glib::VariantDict;
 use stable_eyre::{eyre::OptionExt, Result};
 use std::path::{Path, PathBuf};
 use zbus::zvariant::{OwnedObjectPath, Value};
-
+pub mod session;
 use crate::runtime;
 
 // The mode needs to be one of "replace", "fail", "isolate",
