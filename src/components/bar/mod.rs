@@ -65,7 +65,6 @@ kurage::generate_component!(Bar {
                 set_is_disclosure: true,
                 set_color: libhelium::ButtonColor::Primary,
                 set_valign: gtk::Align::Center,
-
                 connect_clicked[menu_btn = model.menu_btn.clone()] => move |_| {
                     println!("Button clicked!");
                     // todo: pass in global dbus
@@ -75,6 +74,9 @@ kurage::generate_component!(Bar {
             },
             #[local_ref] menu_btn ->
             gtk::MenuButton {
+                // note: Required to set direction to Up to force appmenu show on top
+                // fixes quirks with some compositors like miriway
+                set_direction: gtk::ArrowType::Up,
                 set_visible: false,
                 set_popover: Some(model.app_launcher.as_ref().unwrap().widget()),
             },
