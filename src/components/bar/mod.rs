@@ -1,6 +1,6 @@
 ///! The "bar" here is the bottom floating panel
 use gtk::prelude::*;
-use gtk4_layer_shell::{Edge, Layer, LayerShell};
+use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use libhelium::prelude::*;
 use relm4::prelude::*;
 
@@ -43,7 +43,7 @@ kurage::generate_component!(Bar {
         // set_name: "Kumo Bar",
         set_decorated: false,
         set_resizable: true,
-        set_can_focus: false,
+        set_can_focus: true,
         remove_css_class: "csd",
         set_maximized: false,
         set_exclusive_zone: 50,
@@ -51,6 +51,7 @@ kurage::generate_component!(Bar {
         set_anchor[true]: Edge::Bottom,
         set_anchor[true]: Edge::Left,
         set_anchor[true]: Edge::Right,
+        set_keyboard_mode: KeyboardMode::OnDemand,
 
         #[wrap(Some)]
         set_child = &gtk::Box {

@@ -36,6 +36,7 @@ impl relm4::factory::FactoryComponent for App {
             libhelium::Button {
                 set_size: libhelium::ButtonSize::Xlarge,
                 set_is_iconic: true,
+                set_tooltip_text: Some(&self.name),
                 #[wrap(Some)]
                 set_child = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
@@ -79,7 +80,7 @@ impl relm4::factory::FactoryComponent for App {
     ) -> Self {
         let icon = init
             .icon()
-            .unwrap_or_else(|| gio::Icon::for_string("application-default-icon").unwrap());
+            .unwrap_or_else(|| gio::Icon::for_string("application-x-executable").unwrap());
         let name = init.name().to_string();
         let keywords = init.keywords();
         let description = init.description().unwrap_or_default().to_string();
@@ -107,7 +108,7 @@ impl Default for AppFactory {
         gio::AppInfo::all()
             .into_iter()
             .filter_map(|appinfo| gio::DesktopAppInfo::new(&*appinfo.id().unwrap_or_default()))
-            .take(6)
+            // .take(6)
             .for_each(|x| _ = guard.push_back(x));
         tracing::trace!("AppFactory initialized");
         drop(guard);

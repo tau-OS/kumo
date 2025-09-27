@@ -17,7 +17,7 @@ kurage::generate_component!(AppLauncher {
     appfactory: appfactory::AppFactory,
 }:
     init[search_bar appfactory { model.appfactory.0.widget() }](root, sender, model, widgets) for init: AppLauncherInit {
-        search_bar.internal_entry().connect_changed(glib::clone!(#[weak] appfactory, move |en| {
+        search_bar.entry().connect_changed(glib::clone!(#[weak] appfactory, move |en| {
             let text = en.text();
             tracing::trace!(?text, "Input changed");
             *SEARCH_STATE.write() = text;
@@ -38,7 +38,7 @@ kurage::generate_component!(AppLauncher {
         // set_vexpand: true,
         // set_hexpand: true,
         // todo: disable below, this one is for testing
-        set_autohide: false,
+        // set_autohide: false,
 
         set_default_widget: Some(&model.search_bar),
 
@@ -51,6 +51,8 @@ kurage::generate_component!(AppLauncher {
             set_column_spacing: 4,
             // set_row_homogeneous: true,
             // set_column_homogeneous: true,
+            set_width_request: 1000,
+            set_height_request: 300,
 
             // column, row, width, height
             attach[0, 0, 12, 1] = &libhelium::ViewTitle {
@@ -58,22 +60,31 @@ kurage::generate_component!(AppLauncher {
             },
             #[local_ref]
             attach[13, 0, 8, 1] = search_bar -> libhelium::TextField {
+                set_can_focus: true,
+                set_width_request: 400,
                 set_hexpand: true,
                 set_halign: gtk::Align::Fill,
                 set_is_search: true,
                 set_is_outline: true,
                 set_margin_top: 6,
-                set_margin_bottom: 6,
+                set_margin_bottom: 20,
                 set_prefix_icon: Some("system-search-symbolic"),
                 set_placeholder_text: Some("What do you wish to do?"),
             },
-            #[local_ref]
-            attach[0, 1, 12, 10] = appfactory -> gtk::FlowBox {
-                set_orientation: gtk::Orientation::Horizontal,
-                set_max_children_per_line: 6,
-                set_selection_mode: gtk::SelectionMode::Single,
-                set_homogeneous: true,
+            attach[0, 1, 12, 10] = &gtk::ScrolledWindow {
+                set_vexpand: true,
+                set_hexpand: true,
+                set_min_content_width: 600,
+                #[local_ref]
+                appfactory -> gtk::FlowBox {
+                    set_orientation: gtk::Orientation::Horizontal,
+                    set_max_children_per_line: 6,
+                    set_selection_mode: gtk::SelectionMode::Single,
+                    set_homogeneous: false,
+                },
+
             },
+
             attach[13, 1, 8, 10] = &gtk::FlowBox {
                 set_orientation: gtk::Orientation::Vertical,
                 set_selection_mode: gtk::SelectionMode::Single,
