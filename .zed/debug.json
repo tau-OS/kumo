@@ -12,6 +12,7 @@
             "allow_concurrent_runs": false,
             "fail_on_nonzero_exit": true
         },
+        "sourceLanguages": ["rust"],
         "adapter": "CodeLLDB",
         // "initCommands": [
         //     "/usr/bin/labwc", "--startup", "target/debug/kumo"
