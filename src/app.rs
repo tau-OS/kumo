@@ -47,7 +47,8 @@ impl Application {
                     })
                     .detach();
                 bar.detach_runtime();
-                #[rust_analyzer::ignore] // RA is hallucinating an Option where there should not be one
+                #[rust_analyzer::ignore]
+                // RA is hallucinating an Option where there should not be one
                 app.add_window(bar.widget());
                 bar.widget().present();
             }
@@ -57,7 +58,7 @@ impl Application {
     }
 
     pub fn run(&self) {
-        let _hold = self.app.hold();
+        // let _hold = self.app.hold();
         self.app.run();
         ()
     }

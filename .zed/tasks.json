@@ -2,10 +2,11 @@
 //
 // Example:
 [
-  {
-      "label": "Run LabWC",
-      "command": "labwc",
-      "use_new_terminal": true,
-      "args": ["--verbose"]
-  }
+    {
+        "label": "Run LabWC",
+        "command": "just",
+        "use_new_terminal": true,
+        "cwd": "$ZED_WORKTREE_ROOT",
+        "args": ["labwc_config=$ZED_WORKTREE_ROOT/dev/labwc", "labwc"]
+    }
 ]

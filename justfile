@@ -3,6 +3,8 @@ kumo_bin := "target/debug/kumo"
 remote := "desktest.local"
 remote_bin := "/virtfs/kumo"
 
+labwc_config := "dev/labwc"
+
 build:
     cargo build
 
@@ -14,3 +16,6 @@ close-test:
 
 run-hack: deploy-test close-test
     ssh {{remote}} env GTK_DEBUG=interactive WAYLAND_DISPLAY=wayland-0 {{remote_bin}}
+
+labwc:
+    dbus-launch -- labwc -C {{labwc_config}}

@@ -168,19 +168,19 @@ pub fn gio_launch_desktop_file(file: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn launch_desktop(app: &str) -> Result<()> {
+pub fn launch_desktop(appinfo: &gio::DesktopAppInfo) -> Result<()> {
     let launch_ctx = gio::AppLaunchContext::new();
 
-    let app = {
-        if !app.ends_with(".desktop") {
-            tracing::warn!("Input {app} Doesn't seem to be a .desktop file, appending extension");
-            format!("{app}.desktop")
-        } else {
-            app.to_string()
-        }
-    };
+    // let app = {
+    //     if !app.ends_with(".desktop") {
+    //         tracing::warn!("Input {app} Doesn't seem to be a .desktop file, appending extension");
+    //         format!("{app}.desktop")
+    //     } else {
+    //         app.to_string()
+    //     }
+    // };
 
-    let appinfo = gio::DesktopAppInfo::new(&app).ok_or_eyre("No such app")?;
+    // let appinfo = gio::DesktopAppInfo::new(&app).ok_or_eyre("No such app")?;
 
     // Create channel for systemd adoption requests
     let (sender, receiver) = async_channel::unbounded::<AdoptionRequest>();

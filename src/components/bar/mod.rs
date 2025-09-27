@@ -66,7 +66,7 @@ kurage::generate_component!(Bar {
                 set_color: libhelium::ButtonColor::Primary,
                 set_valign: gtk::Align::Center,
                 connect_clicked[menu_btn = model.menu_btn.clone()] => move |_| {
-                    println!("Button clicked!");
+                    tracing::trace!("Opening app menu");
                     // todo: pass in global dbus
                     // crate::util::launch_desktop("Alacritty").unwrap();
                     menu_btn.set_active(true);

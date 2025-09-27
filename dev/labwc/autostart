@@ -21,8 +21,9 @@ swaybg -c '#113344' >/dev/null 2>&1 &
 # Enable notifications. Typically GNOME/KDE application notifications go
 # through the org.freedesktop.Notifications D-Bus API and require a client such
 # as mako to function correctly. Thunderbird is an example of this.
-SHIZUKU_LOG=trace WAYLAND_DISPLAY=wayland-1 target/debug/shizukud
-
+# SHIZUKU_LOG=trace WAYLAND_DISPLAY=wayland-1 target/debug/shizukud
+#target/debug/shizukud &
+# ( sleep 3 ; cargo r -p shizuku ) &
 # Lock screen after 5 minutes; turn off display after another 5 minutes.
 #
 # Note that in the context of idle system power management, it is *NOT* a good
@@ -35,4 +36,3 @@ SHIZUKU_LOG=trace WAYLAND_DISPLAY=wayland-1 target/debug/shizukud
 # 	timeout 600 'wlopm --off \*' \
 # 	resume 'wlopm --on \*' \
 # 	before-sleep 'swaylock -f -c 000000' >/dev/null 2>&1 &
-
