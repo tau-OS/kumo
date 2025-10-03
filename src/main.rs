@@ -13,11 +13,8 @@ fn runtime() -> &'static Runtime {
     RUNTIME.get_or_init(|| Runtime::new().expect("Setting up tokio runtime needs to succeed."))
 }
 
-
 fn env_filter() -> EnvFilter {
-    EnvFilter::from_env("KUMO_LOG")
-        .add_directive(LevelFilter::TRACE.into())
-        
+    EnvFilter::from_env("KUMO_LOG").add_directive(LevelFilter::TRACE.into())
 }
 
 fn main() -> Result<()> {

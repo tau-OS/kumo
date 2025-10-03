@@ -1,0 +1,7 @@
+Put the config file in ~/.config/kiri.
+
+The file path should be ~/.config/kiri/miriway-shell.config
+
+You can also put it in /etc/xdg/xdg-miriway/kiri if you want system-wide configuration.
+
+See /usr/share/doc/miriway/CONFIGURING_MIRIWAY.md for more information

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=KIRI Desktop (Miriway)
+Comment=Mir/Wayland desktop environment
+Exec=sh -lc miriway-kiri-session
+Type=Application
+TryExec=kiri-session
