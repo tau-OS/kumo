@@ -105,6 +105,7 @@ impl Default for AppFactory {
             .detach();
 
         let mut guard = appfactory.guard();
+        // gio::DesktopAppInfo::search("meow");
         gio::AppInfo::all()
             .into_iter()
             .filter_map(|appinfo| gio::DesktopAppInfo::new(&*appinfo.id().unwrap_or_default()))

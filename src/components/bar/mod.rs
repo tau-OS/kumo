@@ -6,11 +6,9 @@ use relm4::prelude::*;
 
 pub struct BarInit {
     pub app: libhelium::Application,
-    pub dbus_session: zbus::Connection,
 }
 
 kurage::generate_component!(Bar {
-    dbus_session: Option<zbus::Connection>,
     app_launcher: Option<relm4::Controller<crate::components::app_launcher::AppLauncher>>,
     menu_btn: gtk::MenuButton,
 }:
@@ -23,7 +21,6 @@ kurage::generate_component!(Bar {
             model.app_launcher = Some(
                 crate::components::app_launcher::AppLauncher::builder()
                     .launch(crate::components::app_launcher::AppLauncherInit {
-                        dbus_session: init.dbus_session.clone(),
                         parent: root.clone().upcast::<gtk::Widget>(),
                     })
                     .detach(),
@@ -32,7 +29,6 @@ kurage::generate_component!(Bar {
         }
         menu_btn
     ](root, sender, model, widgets) for init: BarInit {
-        model.dbus_session = Some(init.dbus_session);
         root.auto_exclusive_zone_enable();
     }
     update(self, message, sender) {} => {}

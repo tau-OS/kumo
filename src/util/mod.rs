@@ -1,6 +1,7 @@
 use async_channel;
 use gio::prelude::{AppInfoExt, AppLaunchContextExt};
 use glib::VariantDict;
+use session::AdoptionRequest;
 use stable_eyre::{eyre::OptionExt, Result};
 use std::path::{Path, PathBuf};
 use zbus::zvariant::{OwnedObjectPath, Value};
@@ -90,12 +91,6 @@ pub fn appid_from_desktop(path: &str) -> Option<String> {
 pub fn systemd_unit_name(appid: &str) -> String {
     let id = ulid::Ulid::new();
     format!("app-{appid}-{id}")
-}
-
-#[derive(Debug)]
-struct AdoptionRequest {
-    pid: i32,
-    app_identifier: String,
 }
 
 // New common function for adopting launched PIDs to systemd scopes

@@ -5,32 +5,45 @@ pub mod app_icon;
 pub mod appfactory;
 
 pub struct AppLauncherInit {
-    pub dbus_session: zbus::Connection,
     pub parent: gtk::Widget,
 }
 
-static SEARCH_STATE: relm4::SharedState<glib::GString> = relm4::SharedState::new();
+static SEARCH_STATE: relm4::SharedState<Vec<glib::GString>> = relm4::SharedState::new();
 
 kurage::generate_component!(AppLauncher {
-    dbus_session: Option<zbus::Connection>,
     search_bar: libhelium::TextField,
     appfactory: appfactory::AppFactory,
 }:
     init[search_bar appfactory { model.appfactory.0.widget() }](root, sender, model, widgets) for init: AppLauncherInit {
+        // HACK: initialize app list
+        *SEARCH_STATE.write() = gio::AppInfo::all().iter().map(|app| app.id().unwrap_or_default()).collect();
         search_bar.entry().connect_changed(glib::clone!(#[weak] appfactory, move |en| {
             let text = en.text();
             tracing::trace!(?text, "Input changed");
-            *SEARCH_STATE.write() = text;
+            if text.is_empty() {
+                *SEARCH_STATE.write() = gio::AppInfo::all().iter().map(|app| app.id().unwrap_or_default()).collect();
+            } else {
+                *SEARCH_STATE.write() = gio::DesktopAppInfo::search(&*text).into_iter().flatten().collect();
+            }
             appfactory.invalidate_filter();
         }));
-        // model.dbus_session = Some(init.dbus_session);
         let appfactory2 = model.appfactory.0.clone();
         model.appfactory.set_filter_func(move |row| {
-            let s = SEARCH_STATE.read().as_str().to_ascii_lowercase();
+            let apps = SEARCH_STATE.read();
+            if apps.is_empty() {
+                // no, if search() returns nothing then nothing should be shown
+                // unless the query is "" (blank string) then we just do AppInfo::all()
+                tracing::debug!("No search results");
+                return false
+            }
             #[allow(clippy::cast_sign_loss)]
             let app_entry = appfactory2.get(row.index() as usize).unwrap();
-            app_entry.name.to_ascii_lowercase().starts_with(&s) || app_entry.keywords.iter().any(|keyword| keyword.to_ascii_lowercase().starts_with(&s))
+            app_entry.deskappinfo.id().is_some_and(|id| apps.contains(&id))
         });
+        // todo: probably sort by relevance...
+        // model.appfactory.set_sort_func(move |row, row2| {
+
+        // });
     }
     update(self, message, sender) {} => {}
 

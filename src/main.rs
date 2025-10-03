@@ -20,6 +20,7 @@ fn env_filter() -> EnvFilter {
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     stable_eyre::install()?;
+    app::init_dbus();
 
     // set envar for log to KUMO_LOG inst6ead of RUST_LOG
     tracing_subscriber::fmt()

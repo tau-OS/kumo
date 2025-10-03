@@ -7,18 +7,14 @@ use relm4::prelude::*;
 
 pub struct FleetInit {
     pub app: libhelium::Application,
-    pub dbus_session: zbus::Connection,
 }
 
-kurage::generate_component!(Fleet {
-    dbus_session: Option<zbus::Connection>,
-}:
+kurage::generate_component!(Fleet:
     preinit {
         root.set_application(Some(&init.app));
         root.init_layer_shell();
     }
     init(root, sender, model, widgets) for init: FleetInit {
-        model.dbus_session = Some(init.dbus_session);
         root.auto_exclusive_zone_enable();
     }
     update(self, message, sender) {} => {}
