@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use gtk::prelude::*;
 use libhelium::prelude::*;
+use relm4::RelmWidgetExt;
 
 #[derive(Debug)]
 pub struct App {
@@ -33,23 +34,31 @@ impl relm4::factory::FactoryComponent for App {
     view! {
         #[root]
         gtk::FlowBoxChild {
+            set_halign: gtk::Align::Fill,
+            set_hexpand: true,
             libhelium::Button {
-                set_size: libhelium::ButtonSize::Xlarge,
+                set_size: libhelium::ButtonSize::Large,
+                set_halign: gtk::Align::Fill,
+                set_hexpand: true,
+                set_valign: gtk::Align::Center,
                 set_is_iconic: true,
                 set_tooltip_text: Some(&self.name),
                 #[wrap(Some)]
                 set_child = &gtk::Box {
+                    set_halign: gtk::Align::Fill,
+                    set_hexpand: true,
                     set_orientation: gtk::Orientation::Vertical,
                     set_spacing: 4,
-                    set_margin_top: 8,
-                    set_margin_bottom: 4,
-                    set_margin_start: 2,
-                    set_margin_end: 2,
+                    // set_margin_top: 8,
+                    // set_margin_bottom: 4,
+                    // set_margin_start: 2,
+                    // set_margin_end: 2,
                     gtk::Image {
                         set_icon_size: gtk::IconSize::Large,
                         set_from_gicon: &self.icon,
                     },
                     gtk::Label {
+                        set_hexpand: true,
                         set_margin_top: 2,
                         set_label: &self.name,
                         set_justify: gtk::Justification::Center,
@@ -61,6 +70,7 @@ impl relm4::factory::FactoryComponent for App {
                         set_wrap_mode: gtk::pango::WrapMode::WordChar,
                         set_natural_wrap_mode: gtk::NaturalWrapMode::Word,
                         set_max_width_chars: 7,
+                        inline_css: "caption",
                     },
                 },
                 // ? https://gtk-rs.org/gtk-rs-core/git/docs/gio/prelude/trait.AppInfoExt.html#method.launch

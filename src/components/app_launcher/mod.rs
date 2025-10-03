@@ -48,10 +48,10 @@ kurage::generate_component!(AppLauncher {
     update(self, message, sender) {} => {}
 
     gtk::Popover {
-        // set_vexpand: true,
-        // set_hexpand: true,
+        set_vexpand: true,
+        set_hexpand: true,
         // todo: disable below, this one is for testing
-        // set_autohide: false,
+        set_autohide: false,
 
         set_default_widget: Some(&model.search_bar),
 
@@ -68,26 +68,29 @@ kurage::generate_component!(AppLauncher {
             set_height_request: 300,
 
             // column, row, width, height
-            attach[0, 0, 12, 1] = &libhelium::ViewTitle {
-                set_margin_start: 8,
+            attach[0, 0, 3, 1] = &libhelium::ViewTitle {
+                set_margin_start: 4,
+                set_margin_end: 4,
+                set_margin_top: 4,
+                set_margin_bottom: 4,
                 set_label: Some("Apps"),
             },
             #[local_ref]
-            attach[3, 0, 6, 1] = search_bar -> libhelium::TextField {
+            attach[3, 0, 1, 1] = search_bar -> libhelium::TextField {
                 set_can_focus: true,
                 set_width_request: 400,
                 set_hexpand: true,
                 set_halign: gtk::Align::Fill,
                 set_is_search: true,
                 set_is_outline: true,
-                set_margin_top: 6,
+                set_margin_top: 10,
                 set_margin_bottom: 20,
                 set_margin_start: 4,
-                set_margin_end: 4,
+                set_margin_end: 8,
                 set_prefix_icon: Some("system-search-symbolic"),
                 set_placeholder_text: Some("What do you wish to do?"),
             },
-            attach[0, 1, 12, 3] = &gtk::ScrolledWindow {
+            attach[0, 1, 3, 8] = &gtk::ScrolledWindow {
                 set_vexpand: true,
                 set_hexpand: true,
                 set_min_content_width: 600,
@@ -101,9 +104,12 @@ kurage::generate_component!(AppLauncher {
 
             },
 
-            attach[3, 1, 6, 3] = &gtk::FlowBox {
+            attach[3, 1, 1, 8] = &gtk::FlowBox {
                 set_orientation: gtk::Orientation::Vertical,
                 set_selection_mode: gtk::SelectionMode::Single,
+                set_homogeneous: true,
+                set_row_spacing: 2,
+                set_column_spacing: 0,
             },
         },
     }
