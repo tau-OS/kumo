@@ -62,17 +62,18 @@ kurage::generate_component!(AppLauncher {
             set_hexpand: true,
             set_row_spacing: 4,
             set_column_spacing: 4,
-            // set_row_homogeneous: true,
-            // set_column_homogeneous: true,
+            set_row_homogeneous: true,
+            set_column_homogeneous: true,
             set_width_request: 1000,
             set_height_request: 300,
 
             // column, row, width, height
             attach[0, 0, 12, 1] = &libhelium::ViewTitle {
+                set_margin_start: 8,
                 set_label: Some("Apps"),
             },
             #[local_ref]
-            attach[13, 0, 8, 1] = search_bar -> libhelium::TextField {
+            attach[3, 0, 6, 1] = search_bar -> libhelium::TextField {
                 set_can_focus: true,
                 set_width_request: 400,
                 set_hexpand: true,
@@ -81,10 +82,12 @@ kurage::generate_component!(AppLauncher {
                 set_is_outline: true,
                 set_margin_top: 6,
                 set_margin_bottom: 20,
+                set_margin_start: 4,
+                set_margin_end: 4,
                 set_prefix_icon: Some("system-search-symbolic"),
                 set_placeholder_text: Some("What do you wish to do?"),
             },
-            attach[0, 1, 12, 10] = &gtk::ScrolledWindow {
+            attach[0, 1, 12, 3] = &gtk::ScrolledWindow {
                 set_vexpand: true,
                 set_hexpand: true,
                 set_min_content_width: 600,
@@ -98,7 +101,7 @@ kurage::generate_component!(AppLauncher {
 
             },
 
-            attach[13, 1, 8, 10] = &gtk::FlowBox {
+            attach[3, 1, 6, 3] = &gtk::FlowBox {
                 set_orientation: gtk::Orientation::Vertical,
                 set_selection_mode: gtk::SelectionMode::Single,
             },
