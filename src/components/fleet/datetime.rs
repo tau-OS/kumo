@@ -1,11 +1,16 @@
 use relm4::prelude::*;
+use gtk::prelude::*;
 
 kurage::generate_component!(Datetime {
     lbl: gtk::Label,
-    fmt: String
+    fmt: String,
 }:
     init[lbl](root, sender, model, widgets) {
         // TODO: obtain `fmt` from settings?
+        if model.fmt.is_empty() {
+            // https://docs.rs/chrono/latest/chrono/format/strftime/index.html
+            model.fmt = "%Y-%m-%d %H:%M:%S".to_string();
+        }
 
         gtk::glib::timeout_add(std::time::Duration::from_secs(1), move || {
             sender.input(Self::Input::Update);
@@ -24,6 +29,7 @@ kurage::generate_component!(Datetime {
         #[local_ref] lbl ->
         gtk::Label {
             set_label: "…",
+            add_css_class: "header",
         },
     },
 );
