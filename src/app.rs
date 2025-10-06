@@ -2,9 +2,8 @@ use glib::clone;
 use gtk::prelude::*;
 use relm4::Component;
 use relm4::ComponentController;
-use stable_eyre::eyre::{eyre, Result};
+use stable_eyre::eyre::Result;
 use std::sync::OnceLock;
-use zbus::Connection;
 
 use crate::runtime;
 
@@ -46,6 +45,13 @@ impl Application {
             // RA is hallucinating an Option where there should not be one
             app.add_window(bar.widget());
             bar.widget().present();
+
+            let mut fleet = crate::components::fleet::Fleet::builder()
+                .launch(crate::components::fleet::FleetInit { app: app.clone() })
+                .detach();
+            fleet.detach_runtime();
+            app.add_window(fleet.widget());
+            fleet.widget().present();
         }));
 
         Ok(Application { app })
@@ -54,7 +60,6 @@ impl Application {
     pub fn run(&self) {
         // let _hold = self.app.hold();
         self.app.run();
-        ()
     }
 }
 

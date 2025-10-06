@@ -1,15 +1,37 @@
 //! Fleet is the top bar that contains app indicators, system tray, etc.
+mod datetime;
+mod notif;
+
 use gtk::prelude::*;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 use libhelium::prelude::*;
 use relm4::prelude::*;
 
-
 pub struct FleetInit {
     pub app: libhelium::Application,
 }
 
-kurage::generate_component!(Fleet:
+macro_rules! gen_ctrls {
+    ($FleetCtrls:ident $($comp:ident)+) => { ::pastey::paste! {
+        #[derive(Debug)]
+        struct $FleetCtrls { $(
+            [<$comp _comp>]: relm4::Controller<$comp::[<$comp:camel>]>,
+        )+}
+        impl Default for $FleetCtrls {
+            fn default() -> Self {
+                Self { $(
+                    [<$comp _comp>]: $comp::[<$comp:camel>]::builder().launch(()).detach(),
+                )+}
+            }
+        }
+    }};
+}
+
+gen_ctrls!(FleetCtrls datetime notif);
+
+kurage::generate_component!(Fleet {
+    ctrls: FleetCtrls,
+}:
     preinit {
         root.set_application(Some(&init.app));
         root.init_layer_shell();
@@ -17,7 +39,7 @@ kurage::generate_component!(Fleet:
     init(root, sender, model, widgets) for init: FleetInit {
         root.auto_exclusive_zone_enable();
     }
-    update(self, message, sender) {} => {}
+    update(self, message, _sender) {} => {}
 
     libhelium::ApplicationWindow {
         set_deletable: false,
@@ -35,11 +57,9 @@ kurage::generate_component!(Fleet:
         set_child = &gtk::Box {
             set_orientation: gtk::Orientation::Horizontal,
             set_margin_top: 4,
-            
-            // AppTray
-            // SystemTray
-            // Notifications
-            // Time
+
+            prepend = model.ctrls.datetime_comp.widget(),
+            prepend = model.ctrls.notif_comp.widget(),
         },
     }
 );

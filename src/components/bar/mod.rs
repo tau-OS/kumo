@@ -1,4 +1,4 @@
-///! The "bar" here is the bottom floating panel
+//! The "bar" here is the bottom floating panel
 use gtk::prelude::*;
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 use libhelium::prelude::*;

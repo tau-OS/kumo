@@ -46,6 +46,7 @@ ashpd = { version = "^0.11", features = ["gtk4", "wayland"] }
 tokio = "1.47.1"
 zvariant = { version = "^5.7" }
 futures-util = "0.3.31"
+pastey = "0.1.1"
 
 
 [workspace]
