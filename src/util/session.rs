@@ -6,7 +6,7 @@ use glib::VariantDict;
 use stable_eyre::Result;
 use zvariant::{OwnedObjectPath, Value};
 
-use crate::{app::DBUS_SESSION, runtime, util::appid_from_desktop};
+use crate::{app::DBUS_SESSION, util::appid_from_desktop};
 
 // maybe manage app list idk, maybe not
 pub struct SessionManager {
@@ -66,9 +66,25 @@ impl SessionManager {
         let me = Self {
             dbus: self.dbus.clone(),
         };
-        runtime().spawn(async move { func(&me).await })
+        relm4::spawn(async move { func(&me).await })
     }
-
+    // The mode needs to be one of "replace", "fail", "isolate",
+    // "ignore-dependencies", or "ignore-requirements". If "replace", the method
+    // will start the unit and its dependencies, possibly replacing already queued
+    // jobs that conflict with it. If "fail", the method will start the unit and its
+    // dependencies, but will fail if this would change an already queued job. If
+    // "isolate", the method will start the unit in question and terminate all units
+    // that are not dependencies of it. If "ignore-dependencies", it will start a
+    // unit but ignore all its dependencies. If "ignore-requirements", it will start
+    // a unit but only ignore the requirement dependencies. It is not recommended to
+    // make use of the latter two options. On reply, if successful, this method
+    // returns the newly created job object which has been enqueued for asynchronous
+    // activation. Callers that want to track the outcome of the actual start
+    // operation need to monitor the result of this job. This can be achieved in a
+    // race-free manner by first subscribing to the JobRemoved() signal, then
+    // calling StartUnit() and using the returned job object to filter out unrelated
+    // JobRemoved() signals, until the desired one is received, which will then
+    // carry the result of the start operation.
     pub async fn adopt_app(&self, pid: u32, app_identifier: &str) -> Result<OwnedObjectPath> {
         let unit = format!("{}.scope", systemd_unit_name(&app_identifier));
         self.adopt_scope(pid, &unit).await
@@ -103,7 +119,10 @@ impl SessionManager {
 
         // wonder if we should move this into the struct itself...
         // message handling thingy so we can just pass msgs
-        runtime().spawn(async move {
+        //
+
+        // todo: Consider properly using relm4's internal shit properly for this
+        relm4::spawn(async move {
             tracing::info!("Spawning ephemeral adoption thread");
             while let Ok(request) = receiver.recv().await {
                 tracing::info!(

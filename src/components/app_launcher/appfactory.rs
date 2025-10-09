@@ -4,6 +4,8 @@ use gtk::prelude::*;
 use libhelium::prelude::*;
 use relm4::RelmWidgetExt;
 
+use crate::util::session::SESSION_MANAGER;
+
 #[derive(Debug)]
 pub struct App {
     pub icon: gio::Icon,
@@ -75,7 +77,7 @@ impl relm4::factory::FactoryComponent for App {
                 },
                 // ? https://gtk-rs.org/gtk-rs-core/git/docs/gio/prelude/trait.AppInfoExt.html#method.launch
                 connect_clicked[deskappinfo = self.deskappinfo.clone()] => move |_btn| {
-                    if let Err(err) = crate::util::launch_desktop(&deskappinfo) {
+                    if let Err(err) = SESSION_MANAGER.wait().launch_desktop(&deskappinfo) {
                         tracing::error!(?err, "cannot launch app");
                     }
                 }

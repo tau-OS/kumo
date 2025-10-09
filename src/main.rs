@@ -4,6 +4,8 @@ use stable_eyre::eyre::Result;
 use tokio::runtime::Runtime;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+
+use crate::util::session::init_session_manager;
 mod app;
 mod components;
 mod util;
@@ -21,6 +23,7 @@ fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     stable_eyre::install()?;
     app::init_dbus();
+    init_session_manager();
 
     // set envar for log to KUMO_LOG inst6ead of RUST_LOG
     tracing_subscriber::fmt()
