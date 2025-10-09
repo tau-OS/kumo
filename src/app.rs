@@ -13,7 +13,7 @@ pub static DBUS_SESSION: OnceLock<zbus::Connection> = OnceLock::new();
 pub(crate) fn init_dbus() {
     // tokio spawn() does not need to be awaited,
     // it should resolve on its own
-    runtime().spawn(async {
+    relm4::spawn(async {
         DBUS_SESSION
             .set(zbus::Connection::session().await.unwrap())
             .unwrap();
